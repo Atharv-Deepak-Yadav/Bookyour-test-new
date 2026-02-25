@@ -3,6 +3,7 @@ import {
   User, Mail, Phone, MapPin, Building2, CreditCard,
   Upload, Save, ChevronDown, AlertCircle, BadgeCheck, Edit2, X, Check, Loader
 } from "lucide-react";
+import * as api from "../../../services/api"; // FIXED: Corrected import path
 
 const AccountPage = () => {
   const [labData, setLabData] = useState({
@@ -41,6 +42,7 @@ const AccountPage = () => {
   const [phoneUpdateMessage, setPhoneUpdateMessage] = useState("");
   const [phoneUpdateError, setPhoneUpdateError] = useState("");
   const [phoneUpdateSuccess, setPhoneUpdateSuccess] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
 
   // ========== API INTEGRATION: LOAD ALL DATA FROM LOCALSTORAGE ==========
   useEffect(() => {
@@ -107,12 +109,13 @@ const AccountPage = () => {
     }
   };
 
-  // ========== PHONE NUMBER EDITING ==========
+  // ========== PHONE NUMBER EDITING WITH API ==========
   const handleEditPhoneClick = () => {
     setIsEditingPhone(true);
     setNewPhoneNumber(labData.labPhone.toString());
     setPhoneUpdateError("");
     setPhoneUpdateMessage("");
+    setOtpSent(false);
   };
 
   const handleCancelPhoneEdit = () => {
@@ -122,9 +125,11 @@ const AccountPage = () => {
     setShowOTPModal(false);
     setPhoneUpdateError("");
     setPhoneUpdateMessage("");
+    setOtpSent(false);
   };
 
-  const handleSendOTP = () => {
+  // ========== STEP 1: SEND OTP USING API ==========
+  const handleSendOTP = async () => {
     setPhoneUpdateError("");
     
     // Validate phone number
@@ -134,16 +139,34 @@ const AccountPage = () => {
     }
 
     setPhoneUpdateLoading(true);
-    
-    // Simulate OTP sending (in real scenario, backend sends OTP)
-    setTimeout(() => {
-      setPhoneUpdateLoading(false);
+
+    try {
+      // Get userId from localStorage
+      const userData = localStorage.getItem("user_data");
+      const parsedUser = JSON.parse(userData);
+      const userId = parsedUser._id || parsedUser.id;
+
+      if (!userId) {
+        throw new Error("User ID not found. Please login again.");
+      }
+
+      // Call API function from api.js
+      const result = await api.sendPhoneUpdateOTP(userId, newPhoneNumber);
+
+      // Show OTP modal
       setShowOTPModal(true);
-      setPhoneUpdateMessage("OTP sent to your new phone number");
-      console.log("✅ OTP sent to:", newPhoneNumber);
-    }, 1500);
+      setOtpSent(true);
+      setPhoneUpdateMessage("✓ OTP sent successfully to +91 " + newPhoneNumber);
+      setPhoneUpdateLoading(false);
+
+    } catch (error) {
+      console.error("❌ Error:", error);
+      setPhoneUpdateError(error.message || "Failed to send OTP. Please try again.");
+      setPhoneUpdateLoading(false);
+    }
   };
 
+  // ========== STEP 2: VERIFY OTP AND UPDATE PHONE USING API ==========
   const handleVerifyOTP = async () => {
     setPhoneUpdateError("");
     
@@ -158,38 +181,20 @@ const AccountPage = () => {
       // Get userId from localStorage
       const userData = localStorage.getItem("user_data");
       const parsedUser = JSON.parse(userData);
-      const userId = parsedUser._id || parsedUser.id || "0636c626-b3d6-4ebb-ab33-e368c12be1dc";
+      const userId = parsedUser._id || parsedUser.id;
 
-      const payload = {
-        _id: userId,
-        phoneNumber: parseInt(newPhoneNumber)
-      };
-
-      console.log("📤 Sending phone update to API:", payload);
-
-      const response = await fetch(
-        "https://www.bookurtest.com/_functions/updatephoneNumber",
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
-        }
-      );
-
-      const result = await response.json();
-      console.log("✅ API Response:", result);
-
-      if (!response.ok || !result.success) {
-        throw new Error(result.message || "Phone number update failed");
+      if (!userId) {
+        throw new Error("User ID not found. Please login again.");
       }
+
+      // Call API function from api.js
+      const result = await api.verifyPhoneUpdateOTP(userId, newPhoneNumber, otpCode);
 
       // Update local state
       setLabData({ ...labData, labPhone: newPhoneNumber });
       
       // Update localStorage
-      const updatedUser = { ...parsedUser, phoneNumber: parseInt(newPhoneNumber) };
+      const updatedUser = { ...parsedUser, phoneNumber: parseInt(newPhoneNumber), phone: newPhoneNumber };
       localStorage.setItem("user_data", JSON.stringify(updatedUser));
 
       // Show success
@@ -204,11 +209,12 @@ const AccountPage = () => {
         setShowOTPModal(false);
         setPhoneUpdateSuccess(false);
         setPhoneUpdateMessage("");
+        setOtpSent(false);
       }, 2000);
 
     } catch (error) {
       console.error("❌ Error:", error);
-      setPhoneUpdateError(error.message || "Failed to update phone number. Please try again.");
+      setPhoneUpdateError(error.message || "Failed to verify OTP. Please try again.");
     } finally {
       setPhoneUpdateLoading(false);
     }
@@ -477,16 +483,6 @@ const AccountPage = () => {
           border-radius: 10px;
         }
 
-        .phone-input-row {
-          display: flex;
-          gap: 8px;
-          align-items: flex-start;
-        }
-
-        .phone-input-row input {
-          flex: 1;
-        }
-
         .phone-button-row {
           display: flex;
           gap: 8px;
@@ -585,6 +581,15 @@ const AccountPage = () => {
 
         .modal-success {
           color: #16a34a;
+          font-size: 12px;
+          margin-bottom: 12px;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+
+        .modal-info {
+          color: #0284c7;
           font-size: 12px;
           margin-bottom: 12px;
           display: flex;
@@ -759,14 +764,14 @@ const AccountPage = () => {
               </select>
             </div>
 
-            {/* PHONE NUMBER WITH EDIT */}
+            {/* PHONE NUMBER WITH EDIT AND API INTEGRATION */}
             <div className="col-span-2">
               <label className="label-text block mb-2">Phone Number</label>
               
               {!isEditingPhone ? (
                 // DISPLAY MODE - Read-only with pencil icon
                 <div className="phone-display-box">
-                  <span className="phone-number-text">{labData.labPhone}</span>
+                  <span className="phone-number-text">+91 {labData.labPhone}</span>
                   <button 
                     className="edit-phone-btn"
                     onClick={handleEditPhoneClick}
@@ -841,6 +846,12 @@ const AccountPage = () => {
                 </div>
               )}
 
+              {!otpSent && phoneUpdateMessage && (
+                <div className="modal-info">
+                  ✓ {phoneUpdateMessage}
+                </div>
+              )}
+
               {phoneUpdateSuccess && (
                 <div className="modal-success">
                   <Check size={16} />
@@ -848,7 +859,7 @@ const AccountPage = () => {
                 </div>
               )}
 
-              {!phoneUpdateSuccess && (
+              {!phoneUpdateSuccess && otpSent && (
                 <>
                   <input 
                     type="text"

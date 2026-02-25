@@ -197,6 +197,53 @@ export const registrationPhoneVerify = async ({ phone, otp, firstName, lastName,
 };
 
 // ─────────────────────────────────────────────
+// 🆕 PHONE NUMBER UPDATE WITH OTP VERIFICATION
+// ─────────────────────────────────────────────
+
+// Send OTP to new phone number
+// Body: { userId, newPhoneNumber, action: "sendOTP" }
+// Returns: { success, message }
+export const sendPhoneUpdateOTP = async (userId, newPhoneNumber) => {
+  const response = await fetch(`${API_BASE_URL}/verifyAndUpdateaccountPhone`, {
+    method: "POST",
+    headers: getPublicHeaders(),
+    body: JSON.stringify({
+      userId,
+      newPhoneNumber,
+      action: "sendOTP"
+    }),
+  });
+  const data = await response.json();
+  console.log("📱 sendPhoneUpdateOTP:", data);
+  if (!response.ok || !data.success) {
+    throw new Error(data.message || "Failed to send OTP to phone number.");
+  }
+  return data;
+};
+
+// Verify OTP and update phone number
+// Body: { userId, newPhoneNumber, otp, action: "verifyOTP" }
+// Returns: { success, message, updated: { phoneNumber, ... } }
+export const verifyPhoneUpdateOTP = async (userId, newPhoneNumber, otp) => {
+  const response = await fetch(`${API_BASE_URL}/verifyAndUpdateaccountPhone`, {
+    method: "POST",
+    headers: getPublicHeaders(),
+    body: JSON.stringify({
+      userId,
+      newPhoneNumber,
+      otp,
+      action: "verifyOTP"
+    }),
+  });
+  const data = await response.json();
+  console.log("✅ verifyPhoneUpdateOTP:", data);
+  if (!response.ok || !data.success) {
+    throw new Error(data.message || "OTP verification failed. Please try again.");
+  }
+  return data;
+};
+
+// ─────────────────────────────────────────────
 // 🔒 PROTECTED endpoints (token required)
 // ─────────────────────────────────────────────
 
@@ -347,8 +394,10 @@ export default {
   // public
   emailVerification, emailVerifyOtp, loginSendOtp, loginVerifyOtp,
   registrationPhoneVerify,
+  // phone update with OTP
+  sendPhoneUpdateOTP, verifyPhoneUpdateOTP,
   // protected
   registerMember, fetchMembers, addTest, fetchDashboardData, fetchMaterials,
   // utils
-  transformApiData,fetchTestData
+  transformApiData, fetchTestData
 };
