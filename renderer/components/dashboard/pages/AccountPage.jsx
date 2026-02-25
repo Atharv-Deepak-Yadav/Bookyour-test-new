@@ -1,9 +1,13 @@
 import { useEffect, useState } from "react";
+
+import {
+  SignupSendOtp,
+  updateAccountPhoneVerifyOtp
+} from "../../../services/api";
 import {
   User, Mail, Phone, MapPin, Building2, CreditCard,
   Upload, Save, ChevronDown, AlertCircle, BadgeCheck, Edit2, X, Check, Loader
 } from "lucide-react";
-import * as api from "../../../services/api"; // FIXED: Corrected import path
 
 const AccountPage = () => {
   const [labData, setLabData] = useState({
@@ -109,7 +113,7 @@ const AccountPage = () => {
     }
   };
 
-  // ========== PHONE NUMBER EDITING WITH API ==========
+  // ========== PHONE NUMBER EDITING WITH OTP ==========
   const handleEditPhoneClick = () => {
     setIsEditingPhone(true);
     setNewPhoneNumber(labData.labPhone.toString());
@@ -128,11 +132,10 @@ const AccountPage = () => {
     setOtpSent(false);
   };
 
-  // ========== STEP 1: SEND OTP USING API ==========
+  // ========== STEP 1: SEND OTP ==========
   const handleSendOTP = async () => {
     setPhoneUpdateError("");
-    
-    // Validate phone number
+
     if (newPhoneNumber.length !== 10 || isNaN(newPhoneNumber)) {
       setPhoneUpdateError("Please enter a valid 10-digit phone number");
       return;
@@ -141,66 +144,72 @@ const AccountPage = () => {
     setPhoneUpdateLoading(true);
 
     try {
-      // Get userId from localStorage
-      const userData = localStorage.getItem("user_data");
-      const parsedUser = JSON.parse(userData);
-      const userId = parsedUser._id || parsedUser.id;
+      // Call API to send OTP
+      const result = await SignupSendOtp(newPhoneNumber);
+      
+      console.log("✅ OTP sent successfully:", result);
 
-      if (!userId) {
-        throw new Error("User ID not found. Please login again.");
-      }
-
-      // Call API function from api.js
-      const result = await api.sendPhoneUpdateOTP(userId, newPhoneNumber);
-
-      // Show OTP modal
       setShowOTPModal(true);
       setOtpSent(true);
       setPhoneUpdateMessage("✓ OTP sent successfully to +91 " + newPhoneNumber);
-      setPhoneUpdateLoading(false);
 
     } catch (error) {
-      console.error("❌ Error:", error);
-      setPhoneUpdateError(error.message || "Failed to send OTP. Please try again.");
+      console.error("❌ Error sending OTP:", error);
+      setPhoneUpdateError(error.message || "Failed to send OTP");
+    } finally {
       setPhoneUpdateLoading(false);
     }
   };
 
-  // ========== STEP 2: VERIFY OTP AND UPDATE PHONE USING API ==========
+  // ========== STEP 2: VERIFY OTP AND UPDATE PHONE ==========
   const handleVerifyOTP = async () => {
     setPhoneUpdateError("");
-    
-    if (otpCode.length !== 6 || isNaN(otpCode)) {
-      setPhoneUpdateError("Please enter a valid 6-digit OTP");
+
+    // OTP IS 4 DIGITS, NOT 6!
+    if (otpCode.length !== 4 || isNaN(otpCode)) {
+      setPhoneUpdateError("Please enter a valid 4-digit OTP");
       return;
     }
 
     setPhoneUpdateLoading(true);
 
     try {
-      // Get userId from localStorage
-      const userData = localStorage.getItem("user_data");
-      const parsedUser = JSON.parse(userData);
-      const userId = parsedUser._id || parsedUser.id;
+      const parsedUser = JSON.parse(localStorage.getItem("user_data"));
+      const userId = parsedUser?._id || parsedUser?.id;
 
       if (!userId) {
-        throw new Error("User ID not found. Please login again.");
+        throw new Error("User not found. Please login again.");
       }
 
-      // Call API function from api.js
-      const result = await api.verifyPhoneUpdateOTP(userId, newPhoneNumber, otpCode);
+      console.log("Verifying OTP with userId:", userId);
 
-      // Update local state
-      setLabData({ ...labData, labPhone: newPhoneNumber });
-      
+      // Call API to verify OTP and update phone
+      const result = await updateAccountPhoneVerifyOtp({
+        userId,
+        phoneNumber: newPhoneNumber,
+        otp: otpCode,
+      });
+
+      console.log("✅ Phone updated successfully:", result);
+
+      // Update state
+      setLabData(prev => ({
+        ...prev,
+        labPhone: newPhoneNumber
+      }));
+
       // Update localStorage
-      const updatedUser = { ...parsedUser, phoneNumber: parseInt(newPhoneNumber), phone: newPhoneNumber };
+      const updatedUser = {
+        ...parsedUser,
+        phoneNumber: Number(newPhoneNumber),
+        phone: newPhoneNumber,
+      };
+
       localStorage.setItem("user_data", JSON.stringify(updatedUser));
 
-      // Show success
       setPhoneUpdateSuccess(true);
       setPhoneUpdateMessage("✓ Your phone number has been updated successfully!");
-      
+
       // Reset form after 2 seconds
       setTimeout(() => {
         setIsEditingPhone(false);
@@ -213,8 +222,8 @@ const AccountPage = () => {
       }, 2000);
 
     } catch (error) {
-      console.error("❌ Error:", error);
-      setPhoneUpdateError(error.message || "Failed to verify OTP. Please try again.");
+      console.error("❌ Error verifying OTP:", error);
+      setPhoneUpdateError(error.message || "OTP verification failed");
     } finally {
       setPhoneUpdateLoading(false);
     }
@@ -465,7 +474,6 @@ const AccountPage = () => {
           align-items: center;
           justify-content: center;
           color: #6b7280;
-          hover: color: #374151;
           transition: color 0.2s;
         }
 
@@ -642,7 +650,7 @@ const AccountPage = () => {
 
       <div className="min-h-screen" style={{ backgroundColor: "#ffffff", paddingTop: 0, paddingBottom: 24, paddingLeft: 0, paddingRight: 24 }}>
         
-        {/* PROFILE HEADER CARD - COMPACT */}
+        {/* PROFILE HEADER CARD */}
         <div className="bg-white rounded-xl shadow-lg border border-gray-200" style={{ padding: "20px 24px 20px 32px", marginBottom: 20 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
             <div style={{ width: 60, height: 60, borderRadius: "50%", background: "#f0f0f0", border: "2px solid #e5e7eb", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -764,12 +772,12 @@ const AccountPage = () => {
               </select>
             </div>
 
-            {/* PHONE NUMBER WITH EDIT AND API INTEGRATION */}
+            {/* PHONE NUMBER WITH EDIT AND OTP */}
             <div className="col-span-2">
               <label className="label-text block mb-2">Phone Number</label>
               
               {!isEditingPhone ? (
-                // DISPLAY MODE - Read-only with pencil icon
+                // DISPLAY MODE
                 <div className="phone-display-box">
                   <span className="phone-number-text">+91 {labData.labPhone}</span>
                   <button 
@@ -837,7 +845,7 @@ const AccountPage = () => {
             <div className="modal-content">
               <h3 className="modal-title">Verify OTP</h3>
               <p className="modal-description">
-                Enter the 6-digit OTP sent to +91 {newPhoneNumber}
+                Enter the 4-digit OTP sent to +91 {newPhoneNumber}
               </p>
 
               {phoneUpdateError && (
@@ -863,14 +871,14 @@ const AccountPage = () => {
                 <>
                   <input 
                     type="text"
-                    maxLength="6"
+                    maxLength="4"
                     value={otpCode}
                     onChange={(e) => {
                       const val = e.target.value.replace(/\D/g, '');
                       setOtpCode(val);
                     }}
                     className="otp-input"
-                    placeholder="Enter 6-digit OTP"
+                    placeholder="Enter 4-digit OTP"
                     autoFocus
                   />
 
@@ -878,7 +886,7 @@ const AccountPage = () => {
                     <button 
                       className="verify-btn"
                       onClick={handleVerifyOTP}
-                      disabled={phoneUpdateLoading || otpCode.length !== 6}
+                      disabled={phoneUpdateLoading || otpCode.length !== 4}
                     >
                       {phoneUpdateLoading ? (
                         <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>

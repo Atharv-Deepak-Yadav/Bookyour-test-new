@@ -5,20 +5,6 @@ const API_BASE_URL = "https://www.bookurtest.com/_functions";
 const TOKEN_KEY = "auth_token";
 const USER_KEY  = "user_data";
 
-// ─────────────────────────────────────────────
-// 🔐 TWO header strategies:
-//
-//  getPublicHeaders()    → Content-Type only, NO token
-//                          Used by: login, email verify, signup OTP
-//                          These endpoints don't need a token.
-//
-//  getAuthHeaders()      → Content-Type + Bearer token
-//                          Used by: all protected dashboard/data endpoints
-//                          THROWS "Not logged in" if token is missing
-//                          so the caller always gets a clear error instead
-//                          of a silent 401 from the server.
-// ─────────────────────────────────────────────
-
 const getPublicHeaders = () => ({
   "Content-Type": "application/json",
 });
@@ -36,10 +22,6 @@ const getAuthHeaders = () => {
     Authorization: `Bearer ${token}`,
   };
 };
-
-// ─────────────────────────────────────────────
-// Token + user helpers
-// ─────────────────────────────────────────────
 
 export const setAuthToken = (token) => {
   if (typeof window !== "undefined") {
@@ -80,7 +62,6 @@ export const logout = () => {
 // 🔓 PUBLIC endpoints (no token required)
 // ─────────────────────────────────────────────
 
-// Check email uniqueness + send email OTP
 export const emailVerification = async (email) => {
   const response = await fetch(`${API_BASE_URL}/EmailVerification`, {
     method: "POST",
@@ -95,7 +76,6 @@ export const emailVerification = async (email) => {
   return data;
 };
 
-// Verify the OTP sent to email
 export const emailVerifyOtp = async (email, emailotp) => {
   const response = await fetch(`${API_BASE_URL}/EmailVerifyOtp`, {
     method: "POST",
@@ -110,7 +90,6 @@ export const emailVerifyOtp = async (email, emailotp) => {
   return data;
 };
 
-// Send phone OTP  ─ used for both login AND signup phone step
 export const loginSendOtp = async (phone) => {
   const response = await fetch(`${API_BASE_URL}/Login`, {
     method: "POST",
@@ -124,7 +103,6 @@ export const loginSendOtp = async (phone) => {
   return data;
 };
 
-// Send phone OTP  ─ used for both login AND signup phone step
 export const SignupSendOtp = async (phone) => {
   const response = await fetch(`${API_BASE_URL}/RegistrationPhoneSendOtp`, {
     method: "POST",
@@ -138,7 +116,6 @@ export const SignupSendOtp = async (phone) => {
   return data;
 };
 
-// Verify phone OTP + store token  ─ LOGIN flow only
 export const loginVerifyOtp = async (phone, otp) => {
   const response = await fetch(`${API_BASE_URL}/VerifyOtp`, {
     method: "POST",
@@ -162,10 +139,6 @@ export const loginVerifyOtp = async (phone, otp) => {
   return data;
 };
 
-// Verify phone OTP + register new user  ─ SIGNUP flow only
-// Maps to: POST /RegistrationPhoneverify
-// Body: { ph, otp, firstName, lastName, email, labName }
-// Returns: { success, message, token }
 export const registrationPhoneVerify = async ({ phone, otp, firstName, lastName, email, labName }) => {
   const response = await fetch(`${API_BASE_URL}/RegistrationPhoneverify`, {
     method: "POST",
@@ -185,69 +158,106 @@ export const registrationPhoneVerify = async ({ phone, otp, firstName, lastName,
     throw new Error(data.message || "Registration failed. Please try again.");
   }
 
-  // Store the token returned by the endpoint so the user is immediately logged in
   if (data.token)            setAuthToken(data.token);
   else if (data.accessToken) setAuthToken(data.accessToken);
   else if (data.data?.token) setAuthToken(data.data.token);
 
-  // Persist basic user info
   setUserData({ phone, firstName, lastName, email, labName });
 
   return data;
 };
 
 // ─────────────────────────────────────────────
-// 🆕 PHONE NUMBER UPDATE WITH OTP VERIFICATION
+// 📱 ACCOUNT PHONE UPDATE - WITH OTP
 // ─────────────────────────────────────────────
 
-// Send OTP to new phone number
-// Body: { userId, newPhoneNumber, action: "sendOTP" }
-// Returns: { success, message }
-export const sendPhoneUpdateOTP = async (userId, newPhoneNumber) => {
-  const response = await fetch(`${API_BASE_URL}/verifyAndUpdateaccountPhone`, {
+// STEP 1: Send OTP to new phone number
+export const updateAccountPhoneSendOtp = async (phone) => {
+  console.log("📱 [SEND OTP] Phone:", phone);
+  
+  const response = await fetch(`${API_BASE_URL}/RegistrationPhoneSendOtp`, {
     method: "POST",
     headers: getPublicHeaders(),
-    body: JSON.stringify({
-      userId,
-      newPhoneNumber,
-      action: "sendOTP"
-    }),
+    body: JSON.stringify({ ph: phone }),
   });
+  
   const data = await response.json();
-  console.log("📱 sendPhoneUpdateOTP:", data);
+  console.log("📱 [SEND OTP] Response:", data);
+  
   if (!response.ok || !data.success) {
-    throw new Error(data.message || "Failed to send OTP to phone number.");
+    throw new Error(data.message || "Failed to send OTP");
   }
+  
   return data;
 };
 
-// Verify OTP and update phone number
-// Body: { userId, newPhoneNumber, otp, action: "verifyOTP" }
-// Returns: { success, message, updated: { phoneNumber, ... } }
-export const verifyPhoneUpdateOTP = async (userId, newPhoneNumber, otp) => {
-  const response = await fetch(`${API_BASE_URL}/verifyAndUpdateaccountPhone`, {
-    method: "POST",
-    headers: getPublicHeaders(),
-    body: JSON.stringify({
-      userId,
-      newPhoneNumber,
-      otp,
+// STEP 2: Verify OTP and update phone number
+// STEP 2: Verify OTP and update phone number
+export const updateAccountPhoneVerifyOtp = async ({ userId, phoneNumber, otp }) => {
+  console.log("✅ [VERIFY OTP] userId:", userId);
+  console.log("✅ [VERIFY OTP] phoneNumber:", phoneNumber);
+  console.log("✅ [VERIFY OTP] otp:", otp);
+  
+  const payload = {
+    _id: userId,
+    phoneNumber: Number(phoneNumber),
+    otp: Number(otp),
+  };
+  
+  console.log("✅ [VERIFY OTP] Payload:", JSON.stringify(payload));
+  
+  try {
+    // First try: updatephoneNumber endpoint (PUT)
+    const response = await fetch(`${API_BASE_URL}/updatephoneNumber`, {
+      method: "PUT",
+      headers: getPublicHeaders(),
+      body: JSON.stringify(payload),
+    });
+    
+    console.log("✅ [VERIFY OTP] Response Status:", response.status);
+    
+    const data = await response.json();
+    console.log("✅ [VERIFY OTP] Response:", data);
+    
+    if (response.ok && data.success) {
+      return data;
+    }
+    
+    // If PUT fails, try POST to verifyAndUpdateaccountPhone
+    console.log("⚠️ [VERIFY OTP] PUT failed, trying POST to verifyAndUpdateaccountPhone");
+    
+    const fallbackPayload = {
+      userId: userId,
+      phoneNumber: phoneNumber.toString(),
+      otp: otp.toString(),
       action: "verifyOTP"
-    }),
-  });
-  const data = await response.json();
-  console.log("✅ verifyPhoneUpdateOTP:", data);
-  if (!response.ok || !data.success) {
-    throw new Error(data.message || "OTP verification failed. Please try again.");
+    };
+    
+    const fallbackResponse = await fetch(`${API_BASE_URL}/verifyAndUpdateaccountPhone`, {
+      method: "POST",
+      headers: getPublicHeaders(),
+      body: JSON.stringify(fallbackPayload),
+    });
+    
+    const fallbackData = await fallbackResponse.json();
+    console.log("✅ [VERIFY OTP] Fallback Response:", fallbackData);
+    
+    if (!fallbackResponse.ok || !fallbackData.success) {
+      throw new Error(fallbackData.message || "OTP verification failed");
+    }
+    
+    return fallbackData;
+    
+  } catch (error) {
+    console.error("❌ [VERIFY OTP] Error:", error);
+    throw error;
   }
-  return data;
 };
 
 // ─────────────────────────────────────────────
 // 🔒 PROTECTED endpoints (token required)
 // ─────────────────────────────────────────────
 
-// Register new member (admin / protected use — NOT used in public signup)
 export const registerMember = async ({ name, lastName, email, phoneNumber, type, labName }) => {
   const response = await fetch(`${API_BASE_URL}/members`, {
     method: "POST",
@@ -261,7 +271,6 @@ export const registerMember = async ({ name, lastName, email, phoneNumber, type,
   return await response.json();
 };
 
-// Fetch members list (for dropdowns etc.)
 export const fetchMembers = async () => {
   const response = await fetch(`${API_BASE_URL}/members`, {
     method: "GET",
@@ -293,7 +302,6 @@ export const fetchMembers = async () => {
   });
 };
 
-// Fetch tests for the table
 export const fetchTestData = async () => {
   const response = await fetch(`${API_BASE_URL}/test_data`, {
     method: "GET",
@@ -308,7 +316,6 @@ export const fetchTestData = async () => {
   return data?.totaltest?.items ?? [];
 };
 
-// Add a new test
 export const addTest = async ({ title, test, unit, price, expiredDate }) => {
   const response = await fetch(`${API_BASE_URL}/add_test`, {
     method: "POST",
@@ -323,7 +330,6 @@ export const addTest = async ({ title, test, unit, price, expiredDate }) => {
   return await response.json();
 };
 
-// Fetch dashboard data
 export const fetchDashboardData = async () => {
   const response = await fetch(`${API_BASE_URL}/dashboard_data`, {
     method: "GET",
@@ -333,7 +339,6 @@ export const fetchDashboardData = async () => {
   return await response.json();
 };
 
-// Fetch materials
 export const fetchMaterials = async () => {
   const response = await fetch(`${API_BASE_URL}/material`, {
     method: "GET",
@@ -348,9 +353,6 @@ export const fetchMaterials = async () => {
   return Array.isArray(data) ? data : (data?.items || data?.materials || data || []);
 };
 
-// ─────────────────────────────────────────────
-// Transform API → Dashboard table shape
-// ─────────────────────────────────────────────
 export const transformApiData = (apiResponse) => {
   if (!apiResponse?.totalRooms?.items) return [];
   return apiResponse.totalRooms.items.map((item) => ({
@@ -375,7 +377,6 @@ export const transformApiData = (apiResponse) => {
   }));
 };
 
-// Check if lab name already exists
 export const labNameVerification = async (labName) => {
   const response = await fetch(`${API_BASE_URL}/LabNameVerification`, {
     method: "POST",
@@ -384,20 +385,27 @@ export const labNameVerification = async (labName) => {
   });
   const data = await response.json();
   console.log("🏷️ LabNameVerification:", data);
-  // Returns { exists: true/false } or { success: false } if already taken
   return data;
 };
 
 export default {
-  // helpers
-  setAuthToken, setUserData, getUserData, isAuthenticated, logout,
-  // public
-  emailVerification, emailVerifyOtp, loginSendOtp, loginVerifyOtp,
+  setAuthToken,
+  setUserData,
+  getUserData,
+  isAuthenticated,
+  logout,
+  emailVerification,
+  emailVerifyOtp,
+  loginSendOtp,
+  loginVerifyOtp,
   registrationPhoneVerify,
-  // phone update with OTP
-  sendPhoneUpdateOTP, verifyPhoneUpdateOTP,
-  // protected
-  registerMember, fetchMembers, addTest, fetchDashboardData, fetchMaterials,
-  // utils
-  transformApiData, fetchTestData
+  updateAccountPhoneSendOtp,
+  updateAccountPhoneVerifyOtp,
+  registerMember,
+  fetchMembers,
+  addTest,
+  fetchDashboardData,
+  fetchMaterials,
+  transformApiData,
+  fetchTestData
 };
