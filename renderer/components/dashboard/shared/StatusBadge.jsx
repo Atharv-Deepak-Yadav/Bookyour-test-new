@@ -1,10 +1,46 @@
 import { AlertCircle } from "lucide-react";
 
 const statusConfig = {
-  Sent:         { label: "Sent",       bg: "#f0fdf4", color: "#15803d", border: "#bbf7d0", dot: "#22c55e" },
-  "In-process": { label: "In-process", bg: "#eff6ff", color: "#1d4ed8", border: "#bfdbfe", dot: "#3b82f6" },
-  Rejected:     { label: "Rejected",   bg: "#fef2f2", color: "#dc2626", border: "#fecaca", dot: "#ef4444", showAlert: true },
-  Pending:      { label: "Pending",    bg: "#fffbeb", color: "#b45309", border: "#fde68a", dot: "#f59e0b" },
+  Approved: {
+    label: "Approved",
+    bg: "#f0fdf4",
+    color: "#15803d",
+    border: "#bbf7d0",
+    dot: "#22c55e"
+  },
+
+  Sent: {
+    label: "Sent",
+    bg: "#f0fdf4",
+    color: "#15803d",
+    border: "#bbf7d0",
+    dot: "#22c55e"
+  },
+
+  "In-process": {
+    label: "In-process",
+    bg: "#eff6ff",
+    color: "#1d4ed8",
+    border: "#bfdbfe",
+    dot: "#3b82f6"
+  },
+
+  Rejected: {
+    label: "Rejected",
+    bg: "#fef2f2",
+    color: "#dc2626",
+    border: "#fecaca",
+    dot: "#ef4444",
+    showAlert: true
+  },
+
+  Pending: {
+    label: "Pending",
+    bg: "#fffbeb",
+    color: "#b45309",
+    border: "#fde68a",
+    dot: "#f59e0b"
+  },
 };
 
 const StatusBadge = ({ status, rejectionReason }) => {

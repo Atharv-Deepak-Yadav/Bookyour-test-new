@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { fetchDistrictTaluka } from "../../../services/api";
+
 
 import {
   SignupSendOtp,
@@ -47,6 +49,10 @@ const AccountPage = () => {
   const [phoneUpdateError, setPhoneUpdateError] = useState("");
   const [phoneUpdateSuccess, setPhoneUpdateSuccess] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
+  // ===== DISTRICT & TALUKA STATES =====
+const [districtData, setDistrictData] = useState([]);
+const [districtOptions, setDistrictOptions] = useState([]);
+const [talukaOptions, setTalukaOptions] = useState([]);
 
   // ========== API INTEGRATION: LOAD ALL DATA FROM LOCALSTORAGE ==========
   useEffect(() => {
@@ -84,15 +90,78 @@ const AccountPage = () => {
       console.warn("⚠️ No user_data found in localStorage");
     }
   }, []);
+useEffect(() => {
+  const loadDistrictData = async () => {
+    try {
+      const data = await fetchDistrictTaluka();
 
-  const handleChange = (e) => {
-    const { name, value, type, files } = e.target;
-    if (type === "file") {
-      setLabData({ ...labData, [name]: files[0] || null });
-    } else {
-      setLabData({ ...labData, [name]: value });
+      const actualData = Array.isArray(data)
+        ? data
+        : data?.items || data?.data || [];
+
+      setDistrictData(actualData);
+
+      // ✅ Create unique district list
+      const uniqueDistricts = [
+        ...new Set(
+          actualData
+            .map(item => item.district?.trim())
+            .filter(Boolean)
+        )
+      ];
+
+      setDistrictOptions(uniqueDistricts);
+
+    } catch (error) {
+      console.error("❌ DISTRICT FETCH ERROR:", error);
     }
   };
+
+  loadDistrictData();
+}, []);useEffect(() => {
+  if (!labData.labDistrict || districtData.length === 0) return;
+
+  const filteredTalukas = districtData
+  .filter(item => item.district1?.trim() === labData.labDistrict)
+  .map(item => item.taluka?.trim())
+  .filter(Boolean);
+
+  const uniqueTalukas = [...new Set(filteredTalukas)];
+
+  setTalukaOptions(uniqueTalukas);
+
+}, [labData.labDistrict, districtData]);
+  const handleChange = (e) => {
+  const { name, value, type, files } = e.target;
+
+  if (type === "file") {
+    setLabData({ ...labData, [name]: files[0] || null });
+    return;
+  }
+
+  // When district changes
+  if (name === "labDistrict") {
+
+    const filteredTalukas = districtData
+  .filter(item => item.district?.trim() === value)
+  .map(item => item.district1?.trim())
+  .filter(Boolean);
+
+    const uniqueTalukas = [...new Set(filteredTalukas)];
+
+    setTalukaOptions(uniqueTalukas);
+
+    setLabData({
+      ...labData,
+      labDistrict: value,
+      labTaluka: ""
+    });
+
+    return;
+  }
+
+  setLabData({ ...labData, [name]: value });
+};
 
   const handleDrag = (e, field) => {
     e.preventDefault();
@@ -297,15 +366,7 @@ const AccountPage = () => {
     }
   };
 
-  const DISTRICTS = ["Pune", "Satara", "Kolhapur", "Sangli", "Solapur", "Nashik", "Aurangabad", "Nagpur", "Mumbai"];
-  const TALUKAS = {
-    Pune: ["Haveli", "Mulshi", "Maval", "Bhor", "Velhe", "Purandar", "Baramati", "Indapur"],
-    Satara: ["Satara", "Karad", "Wai", "Patan", "Mahabaleshwar", "Phaltan"],
-    Kolhapur: ["Karveer", "Hatkanangle", "Shahuwadi", "Radhanagari"],
-  };
-
-  const talukaOptions = TALUKAS[labData.labDistrict] || [];
-
+  
   return (
     <>
       <style>{`
@@ -756,7 +817,9 @@ const AccountPage = () => {
                 className="w-full premium-input"
               >
                 <option value="">Choose District</option>
-                {DISTRICTS.map(d => <option key={d} value={d}>{d}</option>)}
+               {districtOptions.map(d => (
+  <option key={d} value={d}>{d}</option>
+))}
               </select>
             </div>
             <div>
@@ -768,7 +831,9 @@ const AccountPage = () => {
                 className="w-full premium-input"
               >
                 <option value="">Choose Taluka</option>
-                {talukaOptions.map(t => <option key={t} value={t}>{t}</option>)}
+               {talukaOptions.map(t => (
+  <option key={t} value={t}>{t}</option>
+))}
               </select>
             </div>
 

@@ -49,7 +49,7 @@ const TestTable = ({ tests = [] }) => {
                   <td style={{ padding: "13px 20px", fontSize: 13, color: "#6b7280" }}>{test.contractorName}</td>
                   <td style={{ padding: "13px 20px", fontSize: 13, fontWeight: 900, color: "#111" }}>₹{test.totalAmount?.toLocaleString("en-IN")}</td>
                   {/* <td style={{ padding: "13px 20px", fontSize: 11, color: "#9ca3af", maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{test.details}</td> */}
-                  <td style={{ padding: "13px 20px" }}><StatusBadge status={test.reportStatus} rejectionReason={test.rejectionReason} /></td>
+                  <td style={{ padding: "13px 20px" }}><StatusBadge status={test.status} rejectionReason={test.rejectionReason} /></td>
                   <td style={{ padding: "13px 20px" }}>
                     <button
                       onClick={() => setSelectedTest(test)}

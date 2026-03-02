@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, X, FlaskConical, Ruler, IndianRupee, Calendar, ChevronDown, Loader2 } from "lucide-react";
 import { addTest } from "../../../services/api";
 
@@ -47,37 +47,68 @@ const AddTestModal = ({ onClose, onSave, editData, materialOptions, materialsLoa
   const [form,       setForm]       = useState(editData ? { ...editData, amount: editData.amount ?? "" } : blank);
   const [submitting, setSubmitting] = useState(false);
   const [apiError,   setApiError]   = useState(null);
+  const [selectedMaterial, setSelectedMaterial] = useState("");
+const [selectedTest, setSelectedTest] = useState("");
+const [govtPrice, setGovtPrice] = useState(null);
 
   // When a material title is picked, auto-fill test / unit / price from the option's extra fields
-  const handleMaterialChange = (e) => {
-    const selectedValue = e.target.value;
-    const match = materialOptions.find((o) => o.value === selectedValue);
-    setForm((f) => ({
-      ...f,
-      material: selectedValue,
-      test:     match?.test  ?? f.test,
-      unit:     match?.unit  ?? f.unit,
-      amount:   match?.price != null ? String(match.price) : f.amount,
-    }));
-  };
+ 
+// 🔥 Unique materials (like District list)
+const uniqueMaterials = [
+  ...new Map(
+    materialOptions.map(item => [item.value, item])
+  ).values()
+];
 
+// 🔥 Tests based on selected material
+const relatedTests = materialOptions.filter(
+  item => item.value === selectedMaterial
+);// 🔥 Units based on selected test
+const relatedUnits = materialOptions
+  .filter(
+    item =>
+      item.value === selectedMaterial &&
+      item.test === selectedTest
+  )
+  .map(item => ({
+    label: item.unit,
+    value: item.unit
+  }));
+
+// 🔥 When test selected → set unit + govt price
+useEffect(() => {
+  if (!selectedMaterial || !selectedTest) return;
+
+  const match = materialOptions.find(
+    item =>
+      item.value === selectedMaterial &&
+      item.test === selectedTest
+  );
+
+  if (match) {
+    setGovtPrice(match.price);
+  }
+
+}, [selectedTest, selectedMaterial]);
   const upd = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
   const handleSave = async () => {
-    if (!form.material || !form.test || !form.unit || !form.expiredDate) {
-      alert("Please fill in Material, Test, Unit and Expire Date.");
-      return;
-    }
+    if (!selectedMaterial || !selectedTest) {
+  alert("Please select Material and Test.");
+  return;
+}
     setSubmitting(true);
     setApiError(null);
     try {
-      await addTest({
-        title:       form.material,
-        test:        form.test,
-        unit:        form.unit,
-        price:       form.amount ? Number(form.amount) : null,
-        expiredDate: form.expiredDate,
-      });
+     await addTest({
+  title: form.material,
+  test: form.test,
+  unit: form.unit,
+  price: form.amount
+    ? Number(form.amount)
+    : govtPrice,
+  expiredDate: form.expiredDate,
+});
       onSave(form);
       onClose();
     } catch (err) {
@@ -134,33 +165,118 @@ const AddTestModal = ({ onClose, onSave, editData, materialOptions, materialsLoa
             </div>
           )}
 
-          {/* Material dropdown or fallback text */}
-          {materialsError ? (
-            <Field label="Add Testing Material" icon={FlaskConical} value={form.material} onChange={upd("material")} placeholder="e.g. Basic test of cement" />
-          ) : (
-            <SelectField
-              label="Add Testing Material"
-              icon={FlaskConical}
-              value={form.material}
-              onChange={handleMaterialChange}
-              options={materialOptions}
-              loading={materialsLoading}
-              placeholder={materialsLoading ? "Loading materials..." : "Select material..."}
-            />
-          )}
+          {/* Material dropdown */}
+{materialsError ? (
+  <Field
+    label="Add Testing Material"
+    icon={FlaskConical}
+    value={form.material}
+    onChange={upd("material")}
+    placeholder="e.g. Basic test of cement"
+  />
+) : (
+  <SelectField
+    label="Add Testing Material"
+    icon={FlaskConical}
+    value={selectedMaterial}
+    onChange={(e) => {
+      const value = e.target.value;
 
-          {/* Auto-fill confirmation */}
-          {form.material && !materialsError && (
-            <div style={{ borderRadius: 10, padding: "10px 14px", background: "#f0fdf4", border: "1.5px solid #bbf7d0", fontSize: 11, color: "#16a34a", fontWeight: 600 }}>
-              ✅ Material selected — Test, Unit & Price have been auto-filled.
-            </div>
-          )}
+      setSelectedMaterial(value);
 
-          <Field label="Add Test"        icon={FlaskConical} value={form.test}        onChange={upd("test")}        placeholder="e.g. Compressive Strength" readOnly={!!(form.material && !materialsError)} />
-          <Field label="Test Unit"       icon={Ruler}        value={form.unit}        onChange={upd("unit")}        placeholder="e.g. MPa, mm, kN/m²"       readOnly={!!(form.material && !materialsError)} />
-          <Field label="Expire Date"     icon={Calendar}     value={form.expiredDate} onChange={upd("expiredDate")} type="date" />
-          <Field label="Test Amount (₹)" icon={IndianRupee}  value={form.amount}      onChange={upd("amount")}      type="number" placeholder="Leave blank for govt. price" />
+      setForm(f => ({
+        ...f,
+        material: value,
+        test: "",
+        unit: "",
+        amount: ""
+      }));
 
+      setSelectedTest("");
+      setGovtPrice(null);
+    }}
+    options={uniqueMaterials.map(m => ({
+      label: m.label,
+      value: m.value
+    }))}
+    loading={materialsLoading}
+    placeholder={
+      materialsLoading
+        ? "Loading materials..."
+        : "Select material..."
+    }
+  />
+)}
+
+{/* Test dropdown */}
+<SelectField
+  label="Add Test"
+  icon={FlaskConical}
+  value={selectedTest}
+  onChange={(e) => {
+    setSelectedTest(e.target.value);
+    setForm(f => ({ ...f, test: e.target.value }));
+  }}
+  options={relatedTests.map(t => ({
+    label: t.test,
+    value: t.test
+  }))}
+  loading={!selectedMaterial}
+  placeholder={
+    selectedMaterial
+      ? "Select test..."
+      : "Select material first..."
+  }
+/>
+
+<SelectField
+  label="Test Unit"
+  icon={Ruler}
+  value={form.unit}
+  onChange={(e) =>
+    setForm(f => ({ ...f, unit: e.target.value }))
+  }
+  options={relatedUnits}
+  loading={!selectedTest}
+  placeholder={
+    selectedTest
+      ? "Select unit..."
+      : "Select test first..."
+  }
+/>
+
+<Field
+  label="Expire Date"
+  icon={Calendar}
+  value={form.expiredDate}
+  onChange={upd("expiredDate")}
+  type="date"
+/>
+
+<Field
+  label="Test Amount (₹)"
+  icon={IndianRupee}
+  value={form.amount}
+  onChange={upd("amount")}
+  type="number"
+  placeholder="Leave blank for govt. price"
+/>
+
+{govtPrice && (
+  <div style={{
+    marginTop: 8,
+    padding: "8px 12px",
+    borderRadius: 8,
+    background: "#fffbeb",
+    border: "1.5px solid #fde68a",
+    fontSize: 12,
+    fontWeight: 700,
+    color: "#92400e"
+  }}>
+    Govt Approved Price: ₹{Number(govtPrice).toLocaleString("en-IN")}
+  </div>
+)}
+          
           {/* Note */}
           <div style={{ borderRadius: 10, padding: "11px 14px", background: "#fffbeb", border: "1.5px solid #fde68a", display: "flex", alignItems: "flex-start", gap: 8 }}>
             <span style={{ fontSize: 14, marginTop: 1 }}>💡</span>

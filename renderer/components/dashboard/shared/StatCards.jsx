@@ -2,9 +2,11 @@ import { TrendingUp, CheckCircle, Clock, AlertCircle } from "lucide-react";
 
 const StatCards = ({ tests = [] }) => {
   const total    = tests.length;
-  const approved = tests.filter((t) => t.approvalStatus === "Approved").length;
-  const pending  = tests.filter((t) => t.approvalStatus === "Pending").length;
-  const rejected = tests.filter((t) => t.reportStatus  === "Rejected").length;
+const approved = tests.filter(t => t.status?.toLowerCase() === "approved").length;
+
+const rejected = tests.filter(t => t.status?.toLowerCase() === "rejected").length;
+
+const pending = tests.filter(t => t.status?.toLowerCase() === "pending").length;
 
   const cards = [
     { label: "Total Tests",    value: total,    icon: TrendingUp,  iconColor: "#92400e", iconBg: "#fef3c7", cardBg: "#fffbeb", shadow: "rgba(245,193,0,0.22)",   sub: "All submissions" },

@@ -12,6 +12,7 @@ const fmt = (d) =>
 // ── Main Page ────────────────────────────────────────────────────────────────
 const AddTestPage = () => {
   // Table rows (loaded from API)
+ 
   const [rows,         setRows]         = useState([]);
   const [tableLoading, setTableLoading] = useState(true);
   const [tableError,   setTableError]   = useState(null);
@@ -64,30 +65,33 @@ const AddTestPage = () => {
   }, []);
 
   // ── Fetch material dropdown options ──────────────────────────────────────
-  useEffect(() => {
-    const loadMaterials = async () => {
-      setMembersLoading(true);
-      setMembersError(null);
-      try {
-        const deduped = await fetchMaterials();
-        setMemberOptions(
-          deduped.map((m) => ({
-            label: m.title,
-            value: m.title,
-            test:  m.test,
-            unit:  m.unit,
-            price: m.price,
-          }))
-        );
-      } catch (err) {
-        console.error("❌ fetchMaterials error:", err.message);
-        setMembersError(err.message);
-      } finally {
-        setMembersLoading(false);
-      }
-    };
-    loadMaterials();
-  }, []);
+useEffect(() => {
+  const loadMaterials = async () => {
+    setMembersLoading(true);
+    setMembersError(null);
+    try {
+      const materials = await fetchMaterials();
+
+      // 🔥 Store full raw data
+     setMemberOptions(
+  materials.map((item) => ({
+    label: item.title,
+    value: item.title,
+    test: item.test,
+    unit: item.unit,
+    price: item.price,
+  }))
+);
+
+    } catch (err) {
+      setMembersError(err.message);
+    } finally {
+      setMembersLoading(false);
+    }
+  };
+
+  loadMaterials();
+}, []);
 
   // ── Called by AddTestModal after successful API save ─────────────────────
   // Modal handles the POST /add_test call itself; this just updates local state.
@@ -98,10 +102,10 @@ const AddTestPage = () => {
           row.id === editRow.id
             ? {
                 ...row,
-                material:    form.title,
+                material: form.material,
                 test:        form.test,
                 unit:        form.unit,
-                amount:      form.price ? Number(form.price) : null,
+                amount: form.amount ? Number(form.amount) : null,
                 updatedDate: new Date().toISOString().slice(0, 10),
                 expiredDate: form.expiredDate,
               }
@@ -113,10 +117,10 @@ const AddTestPage = () => {
       setRows((r) => [
         {
           id:          Date.now(),
-          material:    form.title,
+          material:    form.material,
           test:        form.test,
           unit:        form.unit,
-          amount:      form.price ? Number(form.price) : null,
+         amount: form.amount ? Number(form.amount) : null,
           updatedDate: new Date().toISOString().slice(0, 10),
           expiredDate: form.expiredDate,
         },

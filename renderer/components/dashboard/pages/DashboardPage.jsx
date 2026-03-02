@@ -14,9 +14,15 @@ const DashboardPage = () => {
     try {
       setLoading(true);
       const raw = await fetchDashboardData();
-      setTests(transformApiData(raw));
+      console.log("📊 Dashboard API Response:", raw);
+      
+      const transformed = transformApiData(raw);
+      console.log("✅ Transformed Data:", transformed);
+      
+      setTests(transformed);
       setError(null);
     } catch (err) {
+      console.error("❌ Error loading dashboard:", err);
       setError(err.message);
       setTests([]);
     } finally {

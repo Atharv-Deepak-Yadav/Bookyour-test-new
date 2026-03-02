@@ -62,6 +62,40 @@ export const logout = () => {
 // 🔓 PUBLIC endpoints (no token required)
 // ─────────────────────────────────────────────
 
+// 📍 DISTRICT & TALUKA API
+// ─────────────────────────────────────────────
+
+export const fetchDistrictTaluka = async () => {
+  const token = localStorage.getItem("auth_token");
+
+  if (!token) {
+    throw new Error("No auth token found");
+  }
+
+  const response = await fetch(
+    "https://www.bookurtest.com/_functions/district",
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,   // 🔥 THIS IS IMPORTANT
+      }
+    }
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    console.error("Status:", response.status);
+    console.error("Response:", data);
+    throw new Error(data.error || `API Error: ${response.status}`);
+  }
+
+  return Array.isArray(data)
+    ? data
+    : Object.values(data).find(v => Array.isArray(v)) || [];
+};
+
 export const emailVerification = async (email) => {
   const response = await fetch(`${API_BASE_URL}/EmailVerification`, {
     method: "POST",
@@ -168,88 +202,85 @@ export const registrationPhoneVerify = async ({ phone, otp, firstName, lastName,
 };
 
 // ─────────────────────────────────────────────
-// 📱 ACCOUNT PHONE UPDATE - WITH OTP
+// 📱 ACCOUNT PHONE UPDATE - USING verifyAndUpdateaccountPhone
 // ─────────────────────────────────────────────
 
 // STEP 1: Send OTP to new phone number
 export const updateAccountPhoneSendOtp = async (phone) => {
-  console.log("📱 [SEND OTP] Phone:", phone);
-  
   const response = await fetch(`${API_BASE_URL}/RegistrationPhoneSendOtp`, {
     method: "POST",
     headers: getPublicHeaders(),
     body: JSON.stringify({ ph: phone }),
   });
-  
+
   const data = await response.json();
-  console.log("📱 [SEND OTP] Response:", data);
-  
+
   if (!response.ok || !data.success) {
     throw new Error(data.message || "Failed to send OTP");
   }
-  
+
   return data;
 };
 
 // STEP 2: Verify OTP and update phone number
-// STEP 2: Verify OTP and update phone number
 export const updateAccountPhoneVerifyOtp = async ({ userId, phoneNumber, otp }) => {
+  console.log("════════════════════════════════════════");
+  console.log("✅ [VERIFY OTP] STARTING");
   console.log("✅ [VERIFY OTP] userId:", userId);
   console.log("✅ [VERIFY OTP] phoneNumber:", phoneNumber);
   console.log("✅ [VERIFY OTP] otp:", otp);
+  console.log("════════════════════════════════════════");
   
+  // Get auth token from localStorage
+  const authToken = localStorage.getItem("auth_token");
+  console.log("✅ [VERIFY OTP] Auth Token:", authToken ? "EXISTS ✅" : "MISSING ❌");
+  
+  // CORRECT PAYLOAD - Exact format that works in Postman
+  // Backend expects: _id, phoneNumber (number), otp (number)
   const payload = {
     _id: userId,
     phoneNumber: Number(phoneNumber),
-    otp: Number(otp),
+    phoneNumberOTP: Number(otp)
   };
   
-  console.log("✅ [VERIFY OTP] Payload:", JSON.stringify(payload));
+  console.log("📱 [REQUEST] POST /verifyAndUpdateaccountPhone");
+  console.log("📱 Endpoint:", `${API_BASE_URL}/verifyAndUpdateaccountPhone`);
+  console.log("📱 Payload:", JSON.stringify(payload, null, 2));
+  console.log("📱 Method: POST");
+  console.log("📱 Auth Token:", authToken ? "Included ✅" : "Missing ❌");
   
   try {
-    // First try: updatephoneNumber endpoint (PUT)
-    const response = await fetch(`${API_BASE_URL}/updatephoneNumber`, {
-      method: "PUT",
-      headers: getPublicHeaders(),
+    // Make the API call with auth token
+    const response = await fetch(`${API_BASE_URL}/verifyAndUpdateaccountPhone`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${authToken}`
+      },
       body: JSON.stringify(payload),
     });
     
-    console.log("✅ [VERIFY OTP] Response Status:", response.status);
+    console.log("📱 Response Status:", response.status);
+    console.log("📱 Response OK:", response.ok);
     
     const data = await response.json();
-    console.log("✅ [VERIFY OTP] Response:", data);
+    console.log("📱 Response Data:", JSON.stringify(data, null, 2));
     
+    // Check if response is successful
     if (response.ok && data.success) {
+      console.log("✅ [SUCCESS] Phone number updated successfully!");
+      console.log("════════════════════════════════════════");
       return data;
     }
     
-    // If PUT fails, try POST to verifyAndUpdateaccountPhone
-    console.log("⚠️ [VERIFY OTP] PUT failed, trying POST to verifyAndUpdateaccountPhone");
-    
-    const fallbackPayload = {
-      userId: userId,
-      phoneNumber: phoneNumber.toString(),
-      otp: otp.toString(),
-      action: "verifyOTP"
-    };
-    
-    const fallbackResponse = await fetch(`${API_BASE_URL}/verifyAndUpdateaccountPhone`, {
-      method: "POST",
-      headers: getPublicHeaders(),
-      body: JSON.stringify(fallbackPayload),
-    });
-    
-    const fallbackData = await fallbackResponse.json();
-    console.log("✅ [VERIFY OTP] Fallback Response:", fallbackData);
-    
-    if (!fallbackResponse.ok || !fallbackData.success) {
-      throw new Error(fallbackData.message || "OTP verification failed");
-    }
-    
-    return fallbackData;
+    // If response is not successful, throw error with backend message
+    const errorMsg = data.message || data.error || `HTTP ${response.status}`;
+    console.log("❌ [FAILED] Backend Error:", errorMsg);
+    throw new Error(errorMsg);
     
   } catch (error) {
-    console.error("❌ [VERIFY OTP] Error:", error);
+    console.error("❌ [ERROR] OTP verification failed:", error.message);
+    console.log("════════════════════════════════════════");
     throw error;
   }
 };
@@ -344,39 +375,69 @@ export const fetchMaterials = async () => {
     method: "GET",
     headers: getAuthHeaders(),
   });
-  console.log("[fetchMaterials] Status:", response.status);
+
   if (!response.ok) {
     const errJson = await response.json().catch(() => ({}));
     throw new Error(`API failed: ${response.status} - ${errJson.message || ""}`);
   }
+
   const data = await response.json();
-  return Array.isArray(data) ? data : (data?.items || data?.materials || data || []);
+  const list = Array.isArray(data) ? data : (data?.items || []);
+
+  return list; // return full list, do NOT dedupe here
 };
 
 export const transformApiData = (apiResponse) => {
-  if (!apiResponse?.totalRooms?.items) return [];
-  return apiResponse.totalRooms.items.map((item) => ({
+  let items = [];
+
+if (apiResponse?.totalTest?.items) {
+  items = apiResponse.totalTest.items;
+}
+else if (apiResponse?.totalRooms?.items) {
+  items = apiResponse.totalRooms.items;
+}
+else if (apiResponse?.items) {
+  items = apiResponse.items;
+}
+else if (apiResponse?.bookingData) {
+  items = apiResponse.bookingData;
+}
+else if (Array.isArray(apiResponse)) {
+  items = apiResponse;
+}
+else {
+  console.log("⚠️ Unknown dashboard response format:", apiResponse);
+}
+
+if (!items || !items.length) return [];
+return items.map((item) => {
+   console.log(
+    "DASHBOARD DEBUG:",
+    item.nameOfWork,
+    item.status,
+    item.insepectorStatus
+  );
+let finalStatus = "Pending";
+
+if (item.status === "reject") {
+  finalStatus = "Rejected";
+}
+else if (item.insepectorStatus === "Done") {
+  finalStatus = "Approved";
+}
+else {
+  finalStatus = "Pending";
+}return {
     id: item._id,
     workName: item.nameOfWork || "N/A",
     taluka: item.selectDivision || "N/A",
     contractorName: item.userEmail?.split("@")[0] || "N/A",
     totalAmount: item.workOrderAmount || 0,
-    panNumber: item.serialNumber || "N/A",
-    aadhaarNumber: "XXXX-XXXX-XXXX",
-    registrationNumber: item.workOrderNumber || "N/A",
-    documents: [
-      item.workOrderDocument && { name: "Work Order Document", url: item.workOrderDocument },
-      item.report            && { name: "Report Document",     url: item.report },
-    ].filter(Boolean),
-    materials: item.repeater2Data?.map((r) => ({
-      category: r.material,
-      tests: r.testName.split(","),
-    })) || [],
-    reportStatus:   item.status === "Done" ? "Sent"     : "Pending",
-    approvalStatus: item.status === "Done" ? "Approved" : "Pending",
-  }));
+    status: finalStatus,
+    rejectionReason: item.reason || "",
+  };
+});
 };
-
 export const labNameVerification = async (labName) => {
   const response = await fetch(`${API_BASE_URL}/LabNameVerification`, {
     method: "POST",
@@ -385,6 +446,164 @@ export const labNameVerification = async (labName) => {
   });
   const data = await response.json();
   console.log("🏷️ LabNameVerification:", data);
+  return data;
+};
+
+// ─────────────────────────────────────────────
+// 📋 REPORT APPROVAL ENDPOINTS
+// ─────────────────────────────────────────────
+
+/**
+/**
+ * Fetch pending reports for inspector dashboard
+ * Handles multiple API response formats
+ */
+export const fetchInspectorDashboard = async () => {
+  console.log("📊 [INSPECTOR DASHBOARD] Fetching pending reports...");
+  
+  try {
+    const response = await fetch(`${API_BASE_URL}/inspector_dashboard`, {
+      method: "GET",
+      headers: getAuthHeaders(),
+    });
+
+    console.log("[fetchInspectorDashboard] Status:", response.status);
+    console.log("[fetchInspectorDashboard] OK:", response.ok);
+
+    if (!response.ok) {
+      const errJson = await response.json().catch(() => ({}));
+      throw new Error(`API failed: ${response.status} - ${errJson.message || ""}`);
+    }
+
+    const data = await response.json();
+    console.log("✅ Raw API Response:", JSON.stringify(data, null, 2));
+
+    // Try multiple ways to extract items from response
+    let items = [];
+
+    // Format 1: { totalTest: { items: [...] } }
+    if (data?.totalTest?.items && Array.isArray(data.totalTest.items)) {
+      items = data.totalTest.items;
+      console.log("✅ Using Format 1: totalTest.items");
+    }
+    // Format 2: { items: [...] }
+    else if (data?.items && Array.isArray(data.items)) {
+      items = data.items;
+      console.log("✅ Using Format 2: items");
+    }
+    // Format 3: { data: [...] }
+    else if (data?.data && Array.isArray(data.data)) {
+      items = data.data;
+      console.log("✅ Using Format 3: data");
+    }
+    // Format 4: Direct array
+    else if (Array.isArray(data)) {
+      items = data;
+      console.log("✅ Using Format 4: Direct array");
+    }
+    // Format 5: { reports: [...] }
+    else if (data?.reports && Array.isArray(data.reports)) {
+      items = data.reports;
+      console.log("✅ Using Format 5: reports");
+    }
+    // Format 6: { bookingData: [...] }
+    else if (data?.bookingData && Array.isArray(data.bookingData)) {
+      items = data.bookingData;
+      console.log("✅ Using Format 6: bookingData");
+    }
+    // Format 7: Check all properties for arrays
+    else {
+      const arrayProps = Object.keys(data).filter(key => Array.isArray(data[key]));
+      if (arrayProps.length > 0) {
+        items = data[arrayProps[0]];
+        console.log(`✅ Using Format 7: Found array in property "${arrayProps[0]}"`);
+      }
+    }
+
+    console.log("📊 Extracted items count:", items.length);
+    console.log("📊 Items data:", items);
+
+    // Transform the items to match the table format
+    const transformed = items.map((item) => {
+      const report = {
+  id: item._id,
+  workName: item.nameOfWork,
+  taluka: item.selectDivision,
+  contractorName: item.userEmail?.split("@")[0] || "N/A",
+  totalAmount: item.workOrderAmount || 0,
+  status: item.status,
+  insepectorStatus: item.insepectorStatus,
+  reason: item.reason || "",
+  documents: [
+    item.workOrderDocument && { name: "Work Order", url: item.workOrderDocument },
+    item.report && { name: "Report", url: item.report },
+  ].filter(Boolean),
+};
+      console.log("📄 Transformed report:", report);
+      return report;
+    });
+
+    console.log("✅ Total transformed reports:", transformed.length);
+    return transformed;
+
+  } catch (error) {
+    console.error("❌ [INSPECTOR DASHBOARD] Error:", error.message);
+    throw error;
+  }
+};
+
+/**
+ * Approve a report
+ * Endpoint: POST /acceptReport
+ * Body: { bookingId }
+ */
+export const acceptReport = async (bookingId) => {
+  console.log("✅ [ACCEPT REPORT] Approving report:", bookingId);
+
+  const response = await fetch(`${API_BASE_URL}/acceptReport`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ bookingId }),
+  });
+
+  console.log("[acceptReport] Status:", response.status);
+
+  if (!response.ok) {
+    const errJson = await response.json().catch(() => ({}));
+    const errorMsg = errJson.error || errJson.message || `HTTP ${response.status}`;
+    throw new Error(errorMsg);
+  }
+
+  const data = await response.json();
+  console.log("✅ [ACCEPT REPORT] Success:", data);
+  return data;
+};
+
+/**
+ * Reject a report with reason
+ * Endpoint: POST /rejectReport
+ * Body: { bookingId, reason }
+ */
+export const rejectReport = async (bookingId, reason) => {
+  console.log("❌ [REJECT REPORT] Rejecting report:", bookingId);
+  console.log("❌ [REJECT REPORT] Reason:", reason);
+
+  const response = await fetch(`${API_BASE_URL}/rejectReport`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ bookingId, reason }),
+  });
+
+  console.log("[rejectReport] Status:", response.status);
+
+  if (!response.ok) {
+    const errJson = await response.json().catch(() => ({}));
+    const errorMsg = errJson.error || errJson.message || `HTTP ${response.status}`;
+    throw new Error(errorMsg);
+  }
+
+  const data = await response.json();
+  console.log("✅ [REJECT REPORT] Success:", data);
   return data;
 };
 
@@ -407,5 +626,9 @@ export default {
   fetchDashboardData,
   fetchMaterials,
   transformApiData,
-  fetchTestData
+  fetchTestData,
+  fetchDistrictTaluka,
+  fetchInspectorDashboard,
+  acceptReport,
+  rejectReport,
 };

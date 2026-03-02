@@ -119,6 +119,7 @@ const LoginPage = ({ onLogin, onGoToSignup }) => {
 
       // ========== STEP 5: Create user object for app state =========
       const userObj = {
+        _id: profile._id || profile.id || phone,
         id: profile._id || profile.id || phone,
         phone: profile.phone || profile.ph || phone,
         firstName: profile.firstName || profile.first_name || "",
