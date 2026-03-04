@@ -213,7 +213,7 @@ const rejectedToday = records.filter(
           background: successMessage.type === "success" ? "#f0fdf4" : successMessage.type === "warning" ? "#fef2f2" : "#fef2f2",
           border: `2px solid ${successMessage.type === "success" ? "#22c55e" : "#dc2626"}`,
           zIndex: 2000,
-          animation: "slideIn 0.3s ease-out",
+        
           maxWidth: 400,
         }}>
           <style>{`
@@ -552,8 +552,9 @@ const isRejected =
           style={{
             position: "fixed",
             inset: 0,
-            background: "rgba(15,23,42,0.85)",
-            backdropFilter: "blur(6px)",
+          background: "#f3f4f6",
+backdropFilter: "none",
+         
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -562,10 +563,11 @@ const isRejected =
         >
           <div
             style={{
-              width: "92%",
-              height: "92%",
-              background: "#1e293b",
-              borderRadius: 18,
+           width: "100vw",
+    height: "100vh",
+    background: "#f3f4f6",
+    display: "flex",
+    flexDirection: "column",
               overflow: "hidden",
               boxShadow: "0 40px 120px rgba(0,0,0,0.6)",
               display: "flex",
@@ -576,8 +578,8 @@ const isRejected =
             <div
               style={{
                 padding: "16px 24px",
-                background: "#0f172a",
-                color: "#fff",
+             background: "linear-gradient(135deg,#facc15,#eab308)",
+color: "#1f2937",
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
@@ -591,9 +593,10 @@ const isRejected =
               <button
                 onClick={() => setViewModal(null)}
                 style={{
-                  background: "rgba(255,255,255,0.1)",
+                 background: "rgba(255,255,255,0.1)",
+color: "#ffffff",
                   border: "none",
-                  color: "#fff",
+                  
                   fontSize: 18,
                   borderRadius: 8,
                   padding: "6px 12px",
@@ -605,50 +608,23 @@ const isRejected =
             </div>
 
             {/* PDF Area */}
-            <div
-              style={{
-                flex: 1,
-                background: "#334155",
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                overflow: "hidden"
-              }}
-            >
-              <div
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "flex-start",
-                  overflowY: "auto",
-                  padding: "20px 0"
-                }}
-              >
-                <div
-                  style={{
-                    width: "900px",
-                    minHeight: "100%",
-                    background: "#fff",
-                    borderRadius: 12,
-                    boxShadow: "0 20px 50px rgba(0,0,0,0.5)",
-                    overflow: "hidden"
-                  }}
-                >
-                  <iframe
-                    src={`${viewModal.pdfUrl}#toolbar=0`}
-                    title="PDF Viewer"
-                    style={{
-                      width: "100%",
-                      height: "100vh",
-                      border: "none"
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
+         {/* PDF Area */}
+<div
+  style={{
+    flex: 1,
+    background: "#f3f4f6"
+  }}
+>
+  <iframe
+    src={`${viewModal.pdfUrl}#toolbar=0`}
+    title="PDF Viewer"
+    style={{
+      width: "100%",
+      height: "100%",
+      border: "none"
+    }}
+  />
+</div> </div>
         </div>
       )}
 

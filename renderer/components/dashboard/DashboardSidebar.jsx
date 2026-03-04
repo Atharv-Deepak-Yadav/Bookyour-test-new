@@ -19,16 +19,31 @@ const menuItems = [
   { label: "Add Member", icon: UserPlus, pageKey: "add-member" },
   { label: "Add Test", icon: Plus, pageKey: "add-test" },
   { label: "Report Approval", icon: FileCheck, pageKey: "approval" },
+  
 ];
 
 const DashboardSidebar = ({
   isCollapsed,
   setIsCollapsed,
   activePage,
-  setActivePage,
+setActivePage,
   user,
   onLogout,
 }) => {
+  const [showPopup, setShowPopup] = React.useState(false);
+const handleNavigation = (pageKey) => {
+  const userData = JSON.parse(localStorage.getItem("user_data"));
+  const status = userData?.status || userData?.approvalStatus;
+
+  // allow only My Account if not approved
+  if (status !== "Approved" && pageKey !== "account") {
+    setShowPopup(true);
+    return;
+  }
+
+  setActivePage(pageKey);
+};
+
   return (
     <aside
       className={`fixed left-0 top-0 h-screen flex flex-col transition-all duration-300 ${
@@ -88,7 +103,7 @@ const DashboardSidebar = ({
           return (
             <button
               key={item.pageKey}
-              onClick={() => setActivePage(item.pageKey)}
+              onClick={() => handleNavigation(item.pageKey)}
               title={isCollapsed ? item.label : ""}
               className={`w-full flex items-center rounded-xl transition-all ${
                 isCollapsed ? "justify-center h-12" : "gap-3 px-4 py-3"
@@ -150,6 +165,61 @@ const DashboardSidebar = ({
           </p>
         )}
       </div>
+      {showPopup && (
+  <div
+    style={{
+      position: "fixed",
+      inset: 0,
+      background: "rgba(0,0,0,0.4)",
+      backdropFilter: "blur(6px)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      zIndex: 9999,
+    }}
+  >
+    <div
+      style={{
+        background: "#fff",
+        padding: "45px",
+        borderRadius: "14px",
+        width: "600px",
+        textAlign: "center",
+        boxShadow: "0 10px 30px rgba(0,0,0,0.15)",
+      }}
+    >
+      <h2
+        style={{
+          color: "#dc2626",
+          fontSize: "26px",
+          fontWeight: "700",
+          marginBottom: "15px",
+        }}
+      >
+        Instruction
+      </h2>
+
+      <p style={{ fontSize: "16px", lineHeight: "1.6", color: "#374151" }}>
+        This page can't be accessed because your document has not been approved yet.
+        After approval, you will receive a notification on your registered mobile number.
+      </p>
+
+      <button
+        onClick={() => setShowPopup(false)}
+        style={{
+          marginTop: "20px",
+          padding: "8px 20px",
+          borderRadius: "8px",
+          background: "#f5c100",
+          fontWeight: "bold",
+        }}
+      >
+        OK
+      </button>
+    </div>
+  </div>
+)}
+
     </aside>
   );
 };

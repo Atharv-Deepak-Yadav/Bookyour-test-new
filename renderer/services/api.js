@@ -11,12 +11,15 @@ const getPublicHeaders = () => ({
 
 const getAuthHeaders = () => {
   if (typeof window === "undefined") {
-    throw new Error("Cannot access auth token on the server.");
+    return {};   // do NOT throw error during SSR
   }
+
   const token = localStorage.getItem(TOKEN_KEY);
+
   if (!token) {
-    throw new Error("You are not logged in. Please log in to continue.");
+    return {};   // do NOT crash app
   }
+
   return {
     "Content-Type": "application/json",
     Authorization: `Bearer ${token}`,
@@ -110,17 +113,23 @@ export const emailVerification = async (email) => {
   return data;
 };
 
-export const emailVerifyOtp = async (email, emailotp) => {
+export const emailVerifyOtp = async (email, otp) => {
   const response = await fetch(`${API_BASE_URL}/EmailVerifyOtp`, {
     method: "POST",
     headers: getPublicHeaders(),
-    body: JSON.stringify({ email, emailotp }),
+    body: JSON.stringify({
+      email: email,
+      otp: Number(otp)
+    }),
   });
+
   const data = await response.json();
   console.log("✅ EmailVerifyOtp:", data);
+
   if (!response.ok || !data.success) {
     throw new Error(data.message || "Invalid email OTP. Please try again.");
   }
+
   return data;
 };
 
@@ -166,9 +175,22 @@ export const loginVerifyOtp = async (phone, otp) => {
   else if (data.accessToken) setAuthToken(data.accessToken);
   else if (data.data?.token) setAuthToken(data.data.token);
 
-  if (data.user)      setUserData(data.user);
-  else if (data.data) setUserData({ phone, ...data.data });
-  else                setUserData({ phone });
+  if (data.user) {
+  setUserData({
+    ...data.user,
+    status: data.user.status
+  });
+}
+else if (data.data) {
+  setUserData({
+    phone,
+    ...data.data,
+    status: data.data.status
+  });
+}
+else {
+  setUserData({ phone });
+}
 
   return data;
 };
@@ -606,6 +628,81 @@ export const rejectReport = async (bookingId, reason) => {
   console.log("✅ [REJECT REPORT] Success:", data);
   return data;
 };
+export const uploadReport = async (file) => {
+  console.log("📤 [UPLOAD REPORT] Uploading:", file.name);
+
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const token = localStorage.getItem(TOKEN_KEY);
+  const headers = {};
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const response = await fetch(`${API_BASE_URL}/uploadReport`, {
+    method: "POST",
+    headers,
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`Upload failed (${response.status})`);
+  }
+
+  const data = await response.json();
+
+  if (!data.fileUrl || !data.publicUrl) {
+    throw new Error("Upload succeeded but response missing fileUrl/publicUrl");
+  }
+
+  return data;
+};export const uploadReportBlob = async (blob, fileName) => {
+  console.log("📤 [UPLOAD BLOB] Uploading QR stamped PDF:", fileName);
+
+  const formData = new FormData();
+  formData.append("file", blob, fileName);
+
+  const token = localStorage.getItem(TOKEN_KEY);
+  const headers = {};
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const response = await fetch(`${API_BASE_URL}/uploadReport`, {
+    method: "POST",
+    headers,
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`Blob upload failed (${response.status})`);
+  }
+
+  return await response.json();
+};
+export const submitReportWithQR = async ({ bookingId, fileUrl, editUrl, qrCodeUrl }) => {
+  console.log("📝 [SUBMIT REPORT] bookingId:", bookingId);
+
+  const response = await fetch(`${API_BASE_URL}/uploadFilewithQR`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify({
+      bookingId,
+      fileUrl,
+      editUrl,
+      qrCodeUrl,
+    }),
+  });
+
+  console.log("[submitReportWithQR] Status:", response.status);
+
+  if (!response.ok) {
+    const errJson = await response.json().catch(() => ({}));
+    const errorMsg = errJson.error || errJson.message || `HTTP ${response.status}`;
+    throw new Error(errorMsg);
+  }
+
+  return await response.json();
+};
 
 export default {
   setAuthToken,
@@ -631,4 +728,7 @@ export default {
   fetchInspectorDashboard,
   acceptReport,
   rejectReport,
+  uploadReport,
+  uploadReportBlob,
+  submitReportWithQR,
 };

@@ -3,12 +3,24 @@ import StatCards from "../shared/StatCards";
 import TestTable from "../shared/TestTable";
 import { fetchDashboardData, transformApiData } from "../../../services/api";
 
+
 const DashboardPage = () => {
   const [tests, setTests]     = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState(null);
+const [approved, setApproved] = useState(null);
+  useEffect(() => {
+  const user = JSON.parse(localStorage.getItem("user_data"));
 
-  useEffect(() => { loadData(); }, []);
+  const status = user?.status || user?.approvalStatus;
+
+  if (status === "Approved") {
+    setApproved(true);
+    loadData();
+  } else {
+    setApproved(false);
+  }
+}, []);
 
   const loadData = async () => {
     try {
@@ -28,7 +40,53 @@ const DashboardPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  };if (!approved) {
+  return (
+    <div
+      style={{
+        height: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "#f9fafb"
+      }}
+    >
+      <div
+        style={{
+          background: "#fff",
+          padding: "45px",
+          borderRadius: "14px",
+          width: "600px",
+          textAlign: "center",
+          border: "1px solid #d1d5db",
+          boxShadow: "0 10px 30px rgba(0,0,0,0.15)"
+        }}
+      >
+        <h2
+          style={{
+            color: "#dc2626",
+            marginBottom: "15px",
+            fontSize: "26px",
+            fontWeight: "700"
+          }}
+        >
+          Instruction
+        </h2>
+
+        <p
+          style={{
+            fontSize: "16px",
+            color: "#374151",
+            lineHeight: "1.6"
+          }}
+        >
+          This page can't be accessed because your document has not been approved yet.
+          After approval, you will receive a notification on your registered mobile number.
+        </p>
+      </div>
+    </div>
+  );
+}
 
   if (loading) return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", paddingTop: 80, gap: 16 }}>

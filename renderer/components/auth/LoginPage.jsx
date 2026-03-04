@@ -126,6 +126,12 @@ const LoginPage = ({ onLogin, onGoToSignup }) => {
         lastName: profile.lastName || profile.last_name || "",
         email: profile.email || profile.email_id || "",
         labName: profile.labName || profile.lab_name || profile.laboratory_name || "",
+        approvalStatus:
+  profile.approved ??
+  profile.isApproved ??
+  profile.status ??
+  profile.approvalStatus ??
+  false,
         address: profile.address || "",
         city: profile.city || "",
         district: profile.district || "",
@@ -141,7 +147,7 @@ const LoginPage = ({ onLogin, onGoToSignup }) => {
       console.log("User object ready:", userObj);
 
       // ========== STEP 6: Save to localStorage =========
-      localStorage.setItem("user_data", JSON.stringify(userObj));
+localStorage.setItem("user_data", JSON.stringify(userObj));
 
       // ========== STEP 7: Call onLogin with user data =========
       // This will update index.jsx setUser(userData) and show dashboard

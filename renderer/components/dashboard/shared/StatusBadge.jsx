@@ -60,16 +60,39 @@ const StatusBadge = ({ status, rejectionReason }) => {
         {config.showAlert && rejectionReason && <AlertCircle size={11} style={{ marginLeft: 2 }} />}
       </span>
 
-      {config.showAlert && rejectionReason && (
-        <div
-          className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 z-50"
-          style={{ background: "#1a1a1a", color: "#fff", fontSize: 11, borderRadius: 10, padding: "10px 14px", width: 220, boxShadow: "0 8px 24px rgba(0,0,0,0.2)" }}
-        >
-          <div style={{ fontSize: 9, fontWeight: 900, textTransform: "uppercase", letterSpacing: ".14em", color: "#f5c100", marginBottom: 4 }}>Rejection Reason</div>
-          <div style={{ color: "#d1d5db", lineHeight: 1.5 }}>{rejectionReason}</div>
-          <div style={{ position: "absolute", top: "100%", left: "50%", transform: "translateX(-50%)", width: 0, height: 0, borderLeft: "6px solid transparent", borderRight: "6px solid transparent", borderTop: "6px solid #1a1a1a" }} />
-        </div>
-      )}
+     {config.showAlert && rejectionReason && (
+  <div
+    className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 z-50"
+    style={{ 
+      background: "#7f1d1d",
+      color: "#fee2e2",
+      fontSize: 12,
+      borderRadius: 12,
+      padding: "12px 16px",
+      width: 240,
+      border: "1px solid #fecaca",
+      boxShadow: "0 12px 30px rgba(220,38,38,0.35)"
+    }}
+  >
+    <div style={{ fontSize: 9, fontWeight: 900, textTransform: "uppercase", letterSpacing: ".14em", color: "#fde68a", marginBottom: 4 }}>
+      Rejection Reason
+    </div>
+    <div style={{ color: "#fee2e2", lineHeight: 1.5 }}>
+      {rejectionReason}
+    </div>
+    <div style={{
+      position: "absolute",
+      top: "100%",
+      left: "50%",
+      transform: "translateX(-50%)",
+      width: 0,
+      height: 0,
+      borderLeft: "6px solid transparent",
+      borderRight: "6px solid transparent",
+      borderTop: "6px solid #7f1d1d"
+    }} />
+  </div>
+)}
     </div>
   );
 };
