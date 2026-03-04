@@ -105,7 +105,7 @@ const LoginPage = ({ onLogin, onGoToSignup }) => {
         } else {
           profile = profileData.data;
         }
-      } else if (profileData.phone || profileData.firstName || profileData.email) {
+      } else if (profileData.phone || profileData.name|| profileData.email) {
         profile = profileData;
       } else if (Object.keys(profileData).length > 0) {
         profile = profileData;
@@ -122,7 +122,7 @@ const LoginPage = ({ onLogin, onGoToSignup }) => {
         _id: profile._id || profile.id || phone,
         id: profile._id || profile.id || phone,
         phone: profile.phone || profile.ph || phone,
-        firstName: profile.firstName || profile.first_name || "",
+       name: profile.name || profile.first_name || "",
         lastName: profile.lastName || profile.last_name || "",
         email: profile.email || profile.email_id || "",
         labName: profile.labName || profile.lab_name || profile.laboratory_name || "",

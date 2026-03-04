@@ -147,7 +147,7 @@ const SignupPage = ({ onSignup, onGoToLogin }) => {
       await registrationPhoneVerify({
         phone:     s2.phone,
         otp:       s2.phoneOtp,
-        firstName: s1.name,
+        name: s1.name,
         lastName:  s1.lastName,
         email:     s1.email,
         labName:   s2.labName,   // used for both Lab name and Contractor company name

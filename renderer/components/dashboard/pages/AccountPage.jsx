@@ -13,7 +13,7 @@ import {
 
 const AccountPage = () => {
   const [labData, setLabData] = useState({
-    firstName: "",
+    name: "",
     lastName: "",
     labName: "",
     labEmail: "",
@@ -65,7 +65,7 @@ const [talukaOptions, setTalukaOptions] = useState([]);
 
         setLabData((prev) => ({
           ...prev,
-          firstName: parsedUser.firstName || parsedUser.first_name || "",
+          name: parsedUser.name || parsedUser.first_name || "",
           lastName: parsedUser.lastName || parsedUser.last_name || "",
           labName: parsedUser.labName || parsedUser.lab_name || parsedUser.laboratory_name || "",
           labEmail: parsedUser.email || parsedUser.labEmail || parsedUser.email_id || "",
@@ -314,7 +314,7 @@ useEffect(() => {
 
       const payload = {
         id: userId,
-        firstName: labData.firstName,
+        name: labData.name,
         lastName: labData.lastName,
         labName: labData.labName,
         email: labData.labEmail,
@@ -719,7 +719,7 @@ useEffect(() => {
             </div>
             <div style={{ flex: 1 }}>
               <h2 style={{ fontSize: 16, fontWeight: 900, color: "#111827", margin: 0 }}>
-                Welcome, {labData.firstName || "User"}
+                Welcome, {labData.name|| "User"}
               </h2>
             </div>
           </div>
@@ -742,8 +742,8 @@ useEffect(() => {
             <div>
               <label className="label-text block mb-2">First Name</label>
               <input 
-                name="firstName" 
-                value={labData.firstName} 
+                name="name" 
+                value={labData.name} 
                 onChange={handleChange} 
                 className="w-full premium-input" 
                 placeholder="Enter First Name" 

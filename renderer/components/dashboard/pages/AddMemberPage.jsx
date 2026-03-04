@@ -3,7 +3,7 @@ import { Check, Mail } from "lucide-react";
 
 const AddMemberPage = () => {
   const [form, setForm] = useState({
-    firstName: "",
+    name: "",
     lastName: "",
     email: "",
     emailOtp: "",
@@ -21,7 +21,7 @@ const AddMemberPage = () => {
 
   const handleSendEmailOtp = (e) => {
     e.preventDefault();
-    if (form.firstName.trim() && form.lastName.trim() && form.email.trim()) {
+    if (form.name.trim() && form.lastName.trim() && form.email.trim()) {
       setEmailOtpSent(true);
     } else {
       alert("Please fill all fields");
@@ -122,7 +122,7 @@ const AddMemberPage = () => {
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 20 }}>
                 <div>
                   <label style={{ fontSize: 13, fontWeight: 700, color: "#374151", display: "block", marginBottom: 10 }}>First Name</label>
-                  <input name="firstName" type="text" value={form.firstName} onChange={handleChange} disabled={emailOtpVerified} style={{ width: "100%", padding: "12px 16px", border: "2px solid #dbeafe", borderRadius: 12, fontSize: 14, fontWeight: 500, outline: "none", background: "#eff6ff", boxSizing: "border-box" }} />
+                  <input name="name" type="text" value={form.name} onChange={handleChange} disabled={emailOtpVerified} style={{ width: "100%", padding: "12px 16px", border: "2px solid #dbeafe", borderRadius: 12, fontSize: 14, fontWeight: 500, outline: "none", background: "#eff6ff", boxSizing: "border-box" }} />
                 </div>
                 <div>
                   <label style={{ fontSize: 13, fontWeight: 700, color: "#374151", display: "block", marginBottom: 10 }}>Last Name</label>
@@ -226,7 +226,7 @@ const AddMemberPage = () => {
         </div>
         <div style={{ background: "#fff", borderRadius: 16, border: "1.5px solid #e5e7eb", padding: "20px" }}>
           <h3 style={{ fontSize: 14, fontWeight: 900, color: "#111827", margin: "0 0 16px" }}>Onboarding Status</h3>
-          {[{ label: "Details Submitted", done: form.firstName && form.lastName && form.email }, { label: "Email Verified", done: emailOtpVerified }, { label: "Phone Verified", done: phoneOtpVerified }, { label: "Account Activated", done: phoneOtpVerified }].map((item, idx) => (
+          {[{ label: "Details Submitted", done: form.name && form.lastName && form.email }, { label: "Email Verified", done: emailOtpVerified }, { label: "Phone Verified", done: phoneOtpVerified }, { label: "Account Activated", done: phoneOtpVerified }].map((item, idx) => (
             <div key={idx} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: idx < 3 ? 12 : 0 }}>
               <p style={{ fontSize: 13, color: item.done ? "#111827" : "#b0b9c3", fontWeight: item.done ? 700 : 500, margin: 0 }}>{item.label}</p>
               {item.done && <Check size={18} color="#16a34a" />}

@@ -38,7 +38,7 @@ export default function SetToken() {
         
         // Map keys to match AccountPage state exactly
         const userObj = {
-          firstName: profile.firstName || "",
+          name: profile.name || "",
           lastName: profile.lastName || "",
           labName: profile.labName || "",
           email: profile.email || "",

@@ -195,14 +195,14 @@ else {
   return data;
 };
 
-export const registrationPhoneVerify = async ({ phone, otp, firstName, lastName, email, labName }) => {
+export const registrationPhoneVerify = async ({ phone, otp, name, lastName, email, labName }) => {
   const response = await fetch(`${API_BASE_URL}/RegistrationPhoneverify`, {
     method: "POST",
     headers: getPublicHeaders(),
     body: JSON.stringify({
       ph:        phone,
       otp:       Number(otp),
-      firstName,
+      name,
       lastName,
       email,
       labName,
@@ -218,7 +218,7 @@ export const registrationPhoneVerify = async ({ phone, otp, firstName, lastName,
   else if (data.accessToken) setAuthToken(data.accessToken);
   else if (data.data?.token) setAuthToken(data.data.token);
 
-  setUserData({ phone, firstName, lastName, email, labName });
+  setUserData({ phone, name, lastName, email, labName });
 
   return data;
 };
