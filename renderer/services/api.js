@@ -450,14 +450,26 @@ else if (item.insepectorStatus === "Done") {
 else {
   finalStatus = "Pending";
 }return {
-    id: item._id,
-    workName: item.nameOfWork || "N/A",
-    taluka: item.selectDivision || "N/A",
-    contractorName: item.userEmail?.split("@")[0] || "N/A",
-    totalAmount: item.workOrderAmount || 0,
-    status: finalStatus,
-    rejectionReason: item.reason || "",
-  };
+  id: item._id,
+  workName: item.nameOfWork || "N/A",
+  taluka: item.selectDivision || "N/A",
+  contractorName: item.contractorName || item.userEmail?.split("@")[0] || "N/A",
+  totalAmount: item.workOrderAmount || 0,
+
+  panNumber: item.panNumber,
+  aadhaarNumber: item.aadhaarNumber,
+  registrationNumber: item.registrationNumber,
+
+  documents: [
+    item.workOrderDocument && { name: "Work Order", url: item.workOrderDocument },
+    item.report && { name: "Report", url: item.report },
+  ].filter(Boolean),
+
+  materials: item.materials || [],
+
+  status: finalStatus,
+  rejectionReason: item.reason || "",
+};
 });
 };
 export const labNameVerification = async (labName) => {
