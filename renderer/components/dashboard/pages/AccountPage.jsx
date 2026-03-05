@@ -4,7 +4,8 @@ import { fetchDistrictTaluka } from "../../../services/api";
 
 import {
   SignupSendOtp,
-  updateAccountPhoneVerifyOtp
+  updateAccountPhoneVerifyOtp,
+  uploadFile           // ⭐ NEW
 } from "../../../services/api";
 import {
   User, Mail, Phone, MapPin, Building2, CreditCard,
@@ -298,22 +299,96 @@ useEffect(() => {
     }
   };
 
-  // ========== API INTEGRATION: SAVE DATA ==========
+  // ========== FILE UPLOAD HELPER ==========
+  const uploadFile = async (file) => {
+    if (!file) return null;
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const authToken = localStorage.getItem("auth_token");
+
+      const response = await fetch(
+        "https://www.bookurtest.com/_functions/uploadReport",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+          body: formData,
+        }
+      );
+
+      const data = await response.json();
+      console.log("✅ File uploaded:", data);
+
+      if (!response.ok || !data.fileUrl) {
+        throw new Error(data.message || "File upload failed");
+      }
+
+      return data.fileUrl;
+    } catch (error) {
+      console.error("❌ File upload error:", error);
+      throw error;
+    }
+  };
+
+  // ========== API INTEGRATION: SAVE DATA WITH FILE UPLOADS ==========
   const handleSubmit = async () => {
     setLoading(true);
 
     try {
       const authToken = localStorage.getItem("auth_token");
       const userId = localStorage.getItem("userId");
+      const userData = JSON.parse(localStorage.getItem("user_data"));
+      const userId2 = userData?._id || userData?.id;
 
-      if (!authToken || !userId) {
+      if (!authToken || (!userId && !userId2)) {
         alert("Session expired. Please login again.");
         setLoading(false);
         return;
       }
 
+      const finalUserId = userId || userId2;
+
+      console.log("📤 Starting profile update...");
+
+      // ========== UPLOAD FILES ==========
+      let registrationDocUrl = null;
+      let labApprovalDocUrl = null;
+      let gstCertificateDocUrl = null;
+      let isoCertificateDocUrl = null;
+      let cancelChequePicUrl = null;
+
+      if (labData.registrationDoc) {
+        console.log("📤 Uploading Registration Doc...");
+        registrationDocUrl = await uploadFile(labData.registrationDoc);
+      }
+
+      if (labData.labApprovalDoc) {
+        console.log("📤 Uploading Lab Approval Doc...");
+        labApprovalDocUrl = await uploadFile(labData.labApprovalDoc);
+      }
+
+      if (labData.gstCertificateDoc) {
+        console.log("📤 Uploading GST Certificate...");
+        gstCertificateDocUrl = await uploadFile(labData.gstCertificateDoc);
+      }
+
+      if (labData.isoCertificateDoc) {
+        console.log("📤 Uploading ISO Certificate...");
+        isoCertificateDocUrl = await uploadFile(labData.isoCertificateDoc);
+      }
+
+      if (labData.cancelChequePic) {
+        console.log("📤 Uploading Cancel Cheque...");
+        cancelChequePicUrl = await uploadFile(labData.cancelChequePic);
+      }
+
+      // ========== PREPARE PAYLOAD ==========
       const payload = {
-        id: userId,
+        _id: finalUserId,
         name: labData.name,
         lastName: labData.lastName,
         labName: labData.labName,
@@ -329,6 +404,13 @@ useEffect(() => {
         branchName: labData.branchName,
         gstNumber: labData.gstNumber,
         applyGst: labData.applyGST,
+        
+        // ========== FILE URLs ==========
+        registractionNabl: registrationDocUrl,
+        approvalCertificate: labApprovalDocUrl,
+        gstCertificate: gstCertificateDocUrl,
+        isoCertificate: isoCertificateDocUrl,
+        chequePhoto: cancelChequePicUrl,
       };
 
       console.log("📤 Sending update to API:", payload);
@@ -352,7 +434,27 @@ useEffect(() => {
         throw new Error(result.message || "Update failed");
       }
 
-      localStorage.setItem("user_data", JSON.stringify(payload));
+      // Update localStorage with updated data
+      const updatedUserData = {
+        ...userData,
+        name: labData.name,
+        lastName: labData.lastName,
+        labName: labData.labName,
+        email: labData.labEmail,
+        phone: labData.labPhone,
+        address: labData.labAddress,
+        city: labData.labCity,
+        district: labData.labDistrict,
+        taluka: labData.labTaluka,
+        bankName: labData.bankName,
+        ifscCode: labData.ifscCode,
+        accountNumber: labData.accountNumber,
+        branchName: labData.branchName,
+        gstNumber: labData.gstNumber,
+        applyGst: labData.applyGST,
+      };
+
+      localStorage.setItem("user_data", JSON.stringify(updatedUserData));
       console.log("✅ Account updated successfully");
 
       setSaved(true);
@@ -740,13 +842,13 @@ useEffect(() => {
           </div>
           <div className="grid grid-cols-2 gap-6">
             <div>
-              <label className="label-text block mb-2">First Name</label>
+              <label className="label-text block mb-2">name</label>
               <input 
                 name="name" 
                 value={labData.name} 
                 onChange={handleChange} 
                 className="w-full premium-input" 
-                placeholder="Enter First Name" 
+                placeholder="Enter name" 
               />
             </div>
             <div>

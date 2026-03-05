@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Home,
   User,
@@ -19,208 +19,386 @@ const menuItems = [
   { label: "Add Member", icon: UserPlus, pageKey: "add-member" },
   { label: "Add Test", icon: Plus, pageKey: "add-test" },
   { label: "Report Approval", icon: FileCheck, pageKey: "approval" },
-  
 ];
 
 const DashboardSidebar = ({
   isCollapsed,
   setIsCollapsed,
   activePage,
-setActivePage,
+  setActivePage,
   user,
   onLogout,
 }) => {
   const [showPopup, setShowPopup] = React.useState(false);
-const handleNavigation = (pageKey) => {
-  const userData = JSON.parse(localStorage.getItem("user_data"));
-  const status = userData?.status || userData?.approvalStatus;
 
-  // allow only My Account if not approved
-  if (status !== "Approved" && pageKey !== "account") {
-    setShowPopup(true);
-    return;
-  }
+  const handleNavigation = (pageKey) => {
+    const userData = JSON.parse(localStorage.getItem("user_data"));
+    const status = userData?.status || userData?.approvalStatus;
 
-  setActivePage(pageKey);
-};
+    // allow only My Account if not approved
+    if (status !== "Approved" && pageKey !== "account") {
+      setShowPopup(true);
+      return;
+    }
+
+    setActivePage(pageKey);
+  };
+
+  const sidebarWidth = isCollapsed ? 72 : 240;
 
   return (
-    <aside
-      className={`fixed left-0 top-0 h-screen flex flex-col transition-all duration-300 ${
-        isCollapsed ? "w-[72px]" : "w-[240px]"
-      }`}
-      style={{
-        background: "linear-gradient(170deg, #f5c100 0%, #e6a800 100%)",
-      }}
-    >
-      {/* TOP SECTION */}
-      <div className="flex flex-col items-center pt-5">
-
-        {/* TOGGLE (FIXED POSITION ALWAYS SAME) */}
-        <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className="w-8 h-8 flex items-center justify-center rounded-md bg-black shadow-md hover:bg-gray-800 transition"
-        >
-          {isCollapsed ? (
-            <Menu size={16} className="text-white" />
-          ) : (
-            <ChevronLeft size={16} className="text-white" />
-          )}
-        </button>
-
-        {/* SPACING */}
-        <div className="h-6" />
-
-        {/* LOGO */}
+    <>
+      <aside
+        style={{
+          position: "fixed",
+          left: 0,
+          top: 0,
+          height: "100vh",
+          width: `${sidebarWidth}px`,
+          background: "linear-gradient(170deg, #f5c100 0%, #e6a800 100%)",
+          display: "flex",
+          flexDirection: "column",
+          transition: "width 0.3s ease",
+          zIndex: 1000,
+          boxShadow: "2px 0 8px rgba(0,0,0,0.1)",
+        }}
+      >
+        {/* TOP SECTION */}
         <div
-          className={`flex items-center justify-center rounded-2xl bg-white shadow-md transition-all ${
-            isCollapsed ? "w-10 h-10" : "w-16 h-16"
-          }`}
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            paddingTop: "20px",
+          }}
         >
-          <HardHat
-            size={isCollapsed ? 20 : 32}
-            style={{ color: "#e6a800" }}
-          />
+          {/* TOGGLE BUTTON */}
+          <button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            style={{
+              width: "32px",
+              height: "32px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              borderRadius: "8px",
+              background: "#000",
+              border: "none",
+              cursor: "pointer",
+              transition: "all 0.3s",
+              boxShadow: "0 2px 6px rgba(0,0,0,0.3)",
+            }}
+            onMouseEnter={(e) => (e.target.style.background = "#333")}
+            onMouseLeave={(e) => (e.target.style.background = "#000")}
+          >
+            {isCollapsed ? (
+              <Menu size={16} color="white" />
+            ) : (
+              <ChevronLeft size={16} color="white" />
+            )}
+          </button>
+
+          <div style={{ height: "24px" }} />
+
+          {/* LOGO */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              borderRadius: "16px",
+              background: "#fff",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+              width: isCollapsed ? "40px" : "64px",
+              height: isCollapsed ? "40px" : "64px",
+              transition: "all 0.3s ease",
+            }}
+          >
+            <HardHat size={isCollapsed ? 20 : 32} color="#e6a800" />
+          </div>
+
+          {!isCollapsed && (
+            <div
+              style={{
+                marginTop: "16px",
+                textAlign: "center",
+              }}
+            >
+              <h1
+                style={{
+                  fontSize: "18px",
+                  fontWeight: "900",
+                  color: "#111",
+                  margin: "0",
+                  lineHeight: 1.2,
+                }}
+              >
+                bookURtest
+              </h1>
+              <p
+                style={{
+                  fontSize: "10px",
+                  color: "rgba(0,0,0,0.5)",
+                  marginTop: "4px",
+                  letterSpacing: "0.2em",
+                  fontWeight: "700",
+                  textTransform: "uppercase",
+                  margin: 0,
+                }}
+              >
+                Material Testing
+              </p>
+            </div>
+          )}
         </div>
 
-        {!isCollapsed && (
-          <div className="mt-4 text-center">
-            <h1 className="text-lg font-black text-gray-900 leading-none">
-              bookURtest
-            </h1>
-            <p className="text-[10px] text-yellow-900/60 mt-1 tracking-[0.2em] uppercase font-bold">
-              Material Testing
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* NAVIGATION */}
-      <nav className="flex-1 mt-8 px-2 space-y-1">
-        {menuItems.map((item) => {
-          const isActive = activePage === item.pageKey;
-
-          return (
-            <button
-              key={item.pageKey}
-              onClick={() => handleNavigation(item.pageKey)}
-              title={isCollapsed ? item.label : ""}
-              className={`w-full flex items-center rounded-xl transition-all ${
-                isCollapsed ? "justify-center h-12" : "gap-3 px-4 py-3"
-              } ${
-                isActive
-                  ? "bg-white text-yellow-700 shadow-md"
-                  : "text-yellow-950/80 hover:bg-white/30"
-              }`}
-            >
-              <item.icon
-                size={20}
-                className={`${
-                  isActive ? "text-yellow-600" : "text-yellow-900/70"
-                }`}
-              />
-
-              {!isCollapsed && (
-                <span className="flex-1 text-left font-bold text-sm">
-                  {item.label}
-                </span>
-              )}
-
-              {!isCollapsed && isActive && (
-                <div className="w-1.5 h-1.5 rounded-full bg-yellow-500" />
-              )}
-            </button>
-          );
-        })}
-      </nav>
-
-      {/* FOOTER */}
-      <div className="pb-6 pt-4 px-2 border-t border-white/20 space-y-3">
-
-        {!isCollapsed && user?.name && (
-          <div className="px-4 py-3 rounded-xl bg-white/20 backdrop-blur-sm">
-            <p className="text-xs font-black text-yellow-950 truncate">
-              {user.name}
-            </p>
-            <p className="text-[10px] text-yellow-900/60 truncate font-medium">
-              {user.email}
-            </p>
-          </div>
-        )}
-
-        <button
-          onClick={onLogout}
-          title={isCollapsed ? "Logout" : ""}
-          className={`w-full flex items-center rounded-xl font-bold text-red-900/80 hover:bg-red-500 hover:text-white transition ${
-            isCollapsed ? "justify-center h-12" : "gap-3 px-4 py-3 text-sm"
-          }`}
+        {/* NAVIGATION */}
+        <nav
+          style={{
+            flex: 1,
+            marginTop: "32px",
+            padding: "8px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "4px",
+            overflowY: "auto",
+          }}
         >
-          <LogOut size={20} />
-          {!isCollapsed && <span>Logout</span>}
-        </button>
+          {menuItems.map((item) => {
+            const isActive = activePage === item.pageKey;
 
-        {!isCollapsed && (
-          <p className="text-[10px] text-yellow-900/40 text-center font-bold">
-            © 2026 BOOKURTEST
-          </p>
-        )}
-      </div>
+            return (
+              <button
+                key={item.pageKey}
+                onClick={() => handleNavigation(item.pageKey)}
+                title={isCollapsed ? item.label : ""}
+                style={{
+                  width: "100%",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: isCollapsed ? 0 : "12px",
+                  borderRadius: "12px",
+                  padding: isCollapsed ? "12px" : "12px 16px",
+                  border: "none",
+                  cursor: "pointer",
+                  transition: "all 0.2s",
+                  background: isActive ? "#fff" : "transparent",
+                  justifyContent: isCollapsed ? "center" : "flex-start",
+                  height: "48px",
+                }}
+                onMouseEnter={(e) => {
+                  if (!isActive) {
+                    e.target.style.background = "rgba(255,255,255,0.2)";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActive) {
+                    e.target.style.background = "transparent";
+                  }
+                }}
+              >
+                <item.icon
+                  size={20}
+                  color={isActive ? "#d97706" : "rgba(0,0,0,0.6)"}
+                  strokeWidth={isActive ? 2.5 : 2}
+                />
+
+                {!isCollapsed && (
+                  <>
+                    <span
+                      style={{
+                        flex: 1,
+                        textAlign: "left",
+                        fontWeight: "700",
+                        fontSize: "14px",
+                        color: isActive ? "#d97706" : "rgba(0,0,0,0.7)",
+                      }}
+                    >
+                      {item.label}
+                    </span>
+
+                    {isActive && (
+                      <div
+                        style={{
+                          width: "6px",
+                          height: "6px",
+                          borderRadius: "50%",
+                          background: "#f59e0b",
+                        }}
+                      />
+                    )}
+                  </>
+                )}
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* FOOTER */}
+        <div
+          style={{
+            paddingBottom: "24px",
+            paddingTop: "16px",
+            paddingLeft: "8px",
+            paddingRight: "8px",
+            borderTop: "1px solid rgba(255,255,255,0.2)",
+            display: "flex",
+            flexDirection: "column",
+            gap: "12px",
+          }}
+        >
+          {!isCollapsed && user?.name && (
+            <div
+              style={{
+                padding: "12px 16px",
+                borderRadius: "12px",
+                background: "rgba(255,255,255,0.2)",
+                backdropFilter: "blur(10px)",
+              }}
+            >
+              <p
+                style={{
+                  fontSize: "12px",
+                  fontWeight: "700",
+                  color: "#111",
+                  margin: 0,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {user.name}
+              </p>
+              <p
+                style={{
+                  fontSize: "10px",
+                  color: "rgba(0,0,0,0.5)",
+                  margin: "2px 0 0 0",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  fontWeight: "500",
+                }}
+              >
+                {user.email}
+              </p>
+            </div>
+          )}
+
+          <button
+            onClick={onLogout}
+            title={isCollapsed ? "Logout" : ""}
+            style={{
+              width: "100%",
+              display: "flex",
+              alignItems: "center",
+              gap: isCollapsed ? 0 : "12px",
+              borderRadius: "12px",
+              padding: isCollapsed ? "12px" : "12px 16px",
+              border: "none",
+              cursor: "pointer",
+              background: "transparent",
+              height: "48px",
+              justifyContent: isCollapsed ? "center" : "flex-start",
+              transition: "all 0.2s",
+              color: "#991b1b",
+              fontSize: "14px",
+              fontWeight: "700",
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.background = "#ef5350";
+              e.target.style.color = "#fff";
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.background = "transparent";
+              e.target.style.color = "#991b1b";
+            }}
+          >
+            <LogOut size={20} />
+            {!isCollapsed && <span>Logout</span>}
+          </button>
+
+          {!isCollapsed && (
+            <p
+              style={{
+                fontSize: "10px",
+                color: "rgba(0,0,0,0.3)",
+                textAlign: "center",
+                fontWeight: "700",
+                margin: 0,
+              }}
+            >
+              © 2026 BOOKURTEST
+            </p>
+          )}
+        </div>
+      </aside>
+
+      {/* POPUP */}
       {showPopup && (
-  <div
-    style={{
-      position: "fixed",
-      inset: 0,
-      background: "rgba(0,0,0,0.4)",
-      backdropFilter: "blur(6px)",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      zIndex: 9999,
-    }}
-  >
-    <div
-      style={{
-        background: "#fff",
-        padding: "45px",
-        borderRadius: "14px",
-        width: "600px",
-        textAlign: "center",
-        boxShadow: "0 10px 30px rgba(0,0,0,0.15)",
-      }}
-    >
-      <h2
-        style={{
-          color: "#dc2626",
-          fontSize: "26px",
-          fontWeight: "700",
-          marginBottom: "15px",
-        }}
-      >
-        Instruction
-      </h2>
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.4)",
+            backdropFilter: "blur(6px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999,
+          }}
+        >
+          <div
+            style={{
+              background: "#fff",
+              padding: "45px",
+              borderRadius: "14px",
+              width: "600px",
+              textAlign: "center",
+              boxShadow: "0 10px 30px rgba(0,0,0,0.15)",
+            }}
+          >
+            <h2
+              style={{
+                color: "#dc2626",
+                fontSize: "26px",
+                fontWeight: "700",
+                marginBottom: "15px",
+              }}
+            >
+              Instruction
+            </h2>
 
-      <p style={{ fontSize: "16px", lineHeight: "1.6", color: "#374151" }}>
-        This page can't be accessed because your document has not been approved yet.
-        After approval, you will receive a notification on your registered mobile number.
-      </p>
+            <p
+              style={{
+                fontSize: "16px",
+                lineHeight: "1.6",
+                color: "#374151",
+              }}
+            >
+              This page can't be accessed because your document has not been
+              approved yet. After approval, you will receive a notification on
+              your registered mobile number.
+            </p>
 
-      <button
-        onClick={() => setShowPopup(false)}
-        style={{
-          marginTop: "20px",
-          padding: "8px 20px",
-          borderRadius: "8px",
-          background: "#f5c100",
-          fontWeight: "bold",
-        }}
-      >
-        OK
-      </button>
-    </div>
-  </div>
-)}
-
-    </aside>
+            <button
+              onClick={() => setShowPopup(false)}
+              style={{
+                marginTop: "20px",
+                padding: "8px 20px",
+                borderRadius: "8px",
+                background: "#f5c100",
+                fontWeight: "bold",
+                border: "none",
+                cursor: "pointer",
+              }}
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 

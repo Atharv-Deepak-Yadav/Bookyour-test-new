@@ -14,14 +14,17 @@ import DashboardLayout from "../components/dashboard/DashboardLayout";
  */
 export default function App() {
   // Auth state
-  const [user,            setUser]            = useState(null);    // null = not logged in
-  const [authPage,        setAuthPage]        = useState("login"); // "login" | "signup"
-
+  const [user, setUser] = useState(null);
+const [authPage, setAuthPage] = useState("login");
+const [defaultPage, setDefaultPage] = useState("dashboard");
   const isAuthenticated = !!user;
 
   // Called by LoginPage / SignupPage on success
   const handleLogin  = (userData) => setUser(userData);
-  const handleSignup = (userData) => setUser(userData);
+ const handleSignup = (userData) => {
+  setDefaultPage("account"); // open My Account after signup
+  setUser(userData);
+};
 
   // Called by DashboardSidebar logout button
   const handleLogout = () => {
@@ -54,10 +57,11 @@ export default function App() {
         )
       ) : (
         // ── Dashboard (all pages via sidebar) ──────────────────────
-        <DashboardLayout
-          user={user}
-          onLogout={handleLogout}
-        />
+       <DashboardLayout
+  user={user}
+  onLogout={handleLogout}
+  defaultPage={defaultPage}
+/>
       )}
     </>
   );

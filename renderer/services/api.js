@@ -199,14 +199,15 @@ export const registrationPhoneVerify = async ({ phone, otp, name, lastName, emai
   const response = await fetch(`${API_BASE_URL}/RegistrationPhoneverify`, {
     method: "POST",
     headers: getPublicHeaders(),
-    body: JSON.stringify({
-      ph:        phone,
-      otp:       Number(otp),
-      name,
-      lastName,
-      email,
-      labName,
-    }),
+   body: JSON.stringify({
+  ph: phone,
+  otp: Number(otp),
+  name: name,    // ⭐ SWAP: lastName goes to firstName field
+  lastName: lastName,         // ⭐ SWAP: name goes to lastName field  
+  email,
+  labName,
+  status: "Non-Approved", // ⭐ NEW: Set status for new users
+}),
   });
   const data = await response.json();
   console.log("🆕 RegistrationPhoneverify:", data);
