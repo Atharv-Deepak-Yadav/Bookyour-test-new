@@ -8,24 +8,23 @@ const DashboardPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [approved, setApproved] = useState(true);
-  useEffect(() => {
-  checkApprovalStatus();
+
+
+ useEffect(() => {
+    const user = JSON.parse(localStorage.getItem("user_data"));
+
+    const status =
+  user?.status ||
+  user?.approvalStatus ||
+  user?.approved ||
+  false;
+if (status === "Approved" || status === true) {
+  setApproved(true);
   loadData();
-}, []);
-
-  useEffect(() => {
-  const user = JSON.parse(localStorage.getItem("user_data"));
-
-  const status = user?.status || user?.approvalStatus;
-
-  if (status === "Approved") {
-    setApproved(true);
-    loadData();
-  } else {
-    setApproved(false);
-  }
-}, []);
-
+} else {
+  setApproved(false);
+}
+  }, []);
   const loadData = async () => {
     try {
       setLoading(true);

@@ -5,7 +5,7 @@ import { fetchDistrictTaluka } from "../../../services/api";
 import {
   SignupSendOtp,
   updateAccountPhoneVerifyOtp,
-  uploadFile           // ⭐ NEW
+  
 } from "../../../services/api";
 import {
   User, Mail, Phone, MapPin, Building2, CreditCard,
@@ -230,6 +230,9 @@ useEffect(() => {
       setPhoneUpdateLoading(false);
     }
   };
+  const parsedUser = JSON.parse(localStorage.getItem("user_data"));
+
+console.log("USER DATA:", parsedUser);
 
   // ========== STEP 2: VERIFY OTP AND UPDATE PHONE ==========
   const handleVerifyOTP = async () => {
@@ -244,8 +247,19 @@ useEffect(() => {
     setPhoneUpdateLoading(true);
 
     try {
-      const parsedUser = JSON.parse(localStorage.getItem("user_data"));
-      const userId = parsedUser?._id || parsedUser?.id;
+   const parsedUser = JSON.parse(localStorage.getItem("user_data"));
+
+console.log("USER DATA:", parsedUser);
+
+const userId =
+  parsedUser?._id ||
+  parsedUser?.id ||
+  parsedUser?.userId;
+
+if (!userId) {
+  setPhoneUpdateError("User ID missing. Please login again.");
+  return;
+}
 
       if (!userId) {
         throw new Error("User not found. Please login again.");
@@ -336,6 +350,8 @@ useEffect(() => {
 
   // ========== API INTEGRATION: SAVE DATA WITH FILE UPLOADS ==========
   const handleSubmit = async () => {
+    console.log("TOKEN:", authToken);
+console.log("USERID:", finalUserId);
     setLoading(true);
 
     try {
@@ -361,10 +377,9 @@ useEffect(() => {
       let isoCertificateDocUrl = null;
       let cancelChequePicUrl = null;
 
-      if (labData.registrationDoc) {
-        console.log("📤 Uploading Registration Doc...");
-        registrationDocUrl = await uploadFile(labData.registrationDoc);
-      }
+      if (labData.registrationDoc instanceof File) {
+  registrationDocUrl = await uploadFile(labData.registrationDoc);
+}
 
       if (labData.labApprovalDoc) {
         console.log("📤 Uploading Lab Approval Doc...");
@@ -406,29 +421,37 @@ useEffect(() => {
         applyGst: labData.applyGST,
         
         // ========== FILE URLs ==========
-        registractionNabl: registrationDocUrl,
-        approvalCertificate: labApprovalDocUrl,
-        gstCertificate: gstCertificateDocUrl,
-        isoCertificate: isoCertificateDocUrl,
-        chequePhoto: cancelChequePicUrl,
+  registractionNabl: registrationDocUrl || userData?.registractionNabl,
+approvalCertificate: labApprovalDocUrl || userData?.approvalCertificate,
+gstCertificate: gstCertificateDocUrl || userData?.gstCertificate,
+isoCertificate: isoCertificateDocUrl || userData?.isoCertificate,
+chequePhoto: cancelChequePicUrl || userData?.chequePhoto,
       };
+console.log("📤 Sending update to API:", payload);
 
-      console.log("📤 Sending update to API:", payload);
+let response;
 
-      const response = await fetch(
-        "https://www.bookurtest.com/_functions/members",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${authToken}`,
-          },
-          body: JSON.stringify(payload),
-        }
-      );
+try {
+  response = await fetch(
+    "https://www.bookurtest.com/_functions/members",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${authToken}`,
+      },
+      body: JSON.stringify(payload),
+    }
+  );
+} catch (networkError) {
+  console.error("🚨 Network Error:", networkError);
+  alert("Network error. Please check your internet connection.");
+  setLoading(false);
+  return;
+}
 
-      const result = await response.json();
-      console.log("✅ API Response:", result);
+const result = await response.json();
+console.log("✅ API Response:", result);
 
       if (!response.ok) {
         throw new Error(result.message || "Update failed");
@@ -873,12 +896,12 @@ useEffect(() => {
             <div className="col-span-2">
               <label className="label-text block mb-2">Laboratory Name</label>
               <input 
-                name="labName" 
-                value={labData.labName} 
-                onChange={handleChange} 
-                className="w-full premium-input" 
-                placeholder="Enter Laboratory Name" 
-              />
+  name="labName" 
+  value={labData.labName} 
+  readOnly
+  className="w-full premium-input"
+  style={{ backgroundColor: "#f9fafb", cursor: "not-allowed" }}
+/>
             </div>
             <div>
               <label className="label-text block mb-2">Email Address</label>
@@ -1223,7 +1246,7 @@ useEffect(() => {
               opacity: loading ? 0.7 : 1,
             }}
           >
-            {loading ? "Saving..." : saved ? <><BadgeCheck size={16} />Saved!</> : <><Save size={16} />Update Info</>}
+            {loading ? "Uploading Documents...": saved ? <><BadgeCheck size={16} />Saved!</> : <><Save size={16} />Update Info</>}
           </button>
         </div>
       </div>

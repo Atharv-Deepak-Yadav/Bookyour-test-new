@@ -25,7 +25,7 @@ export const InputField = ({
           marginBottom: 4,
         }}
       >
-        {label}
+      {label}
       </label>
       <input
         type={type}
@@ -182,7 +182,7 @@ const LoginPage = ({ onLogin, onGoToSignup }) => {
         
         // Basic info
         phone: profile.phone || profile.ph || phone,
-        name: profile.name || profile.first_name || "",
+      name: profile.name || profile.firstName || profile.first_name || "",
         lastName: profile.lastName || profile.last_name || "",
         email: profile.email || profile.email_id || "",
         

@@ -141,78 +141,38 @@ const SignupPage = ({ onSignup, onGoToLogin }) => {
 
   // POST /RegistrationPhoneverify  — verifies phone OTP + inserts user + returns token
   const handleCreate = async () => {
-    if (!s2.phoneOtp) { setError("Please enter the OTP sent to your phone."); return; }
-    clr(); setLoading(true);
-    try {
-      const response = await registrationPhoneVerify({
-        phone:     s2.phone,
-        otp:       s2.phoneOtp,
-        name: s1.name,
-        lastName:  s1.lastName,
-        email:     s1.email,
-        labName:   s2.labName,
-      });
+  if (!s2.phoneOtp) {
+    setError("Please enter the OTP sent to your phone.");
+    return;
+  }
 
-      // ========== Extract token from response =========
-      const token = response.token || response.authToken;
-      if (token) {
-        localStorage.setItem("auth_token", token);
-        localStorage.setItem("userId", s2.phone);
-      }
+  clr();
+  setLoading(true);
 
-      // ========== Create complete user object with approval status =========
-      // ⭐ NEW USERS START AS NOT APPROVED
-      const userObj = {
-        // IDs
-        _id: response._id || s2.phone,
-        id: response._id || s2.phone,
-        
-        // Basic info
-        phone: s2.phone,
-        name: s1.name,
-        lastName: s1.lastName,
-        email: s1.email,
-        
-        // Lab/Organization info
-        labName: s2.labName,
-        
-        // ⭐ APPROVAL STATUS - New users = NOT APPROVED
-        approvalStatus: false,
-        status: "Non-Approved",
-        
-        // Address details
-        address: "",
-        city: "",
-        district: "",
-        taluka: "",
-        
-        // Bank details
-        bankName: "",
-        ifscCode: "",
-        accountNumber: "",
-        branchName: "",
-        
-        // GST details
-        gstNumber: "",
-        applyGst: "No",
-      };
+  try {
+    const response = await registrationPhoneVerify({
+      phone: s2.phone,
+      otp: s2.phoneOtp,
+      name: s1.name,
+      lastName: s1.lastName,
+      email: s1.email,
+      labName: s2.labName,
+    });
 
-      console.log("👤 New user created:", userObj);
+    console.log("Signup success:", response);
 
-      // ========== Save to localStorage =========
-      localStorage.setItem("user_data", JSON.stringify(userObj));
+    const token = response.token || response.authToken;
 
-      // ========== Call signup callback =========
-      // This will:
-      // - Update index.jsx setUser(userObj)
-      // - Show DashboardLayout with defaultPage="account"
-      // - Dashboard will check approvalStatus and show popup for other pages
-      if (onSignup) onSignup(userObj);
-      else router.push("/my-account");
-    } catch (err) {
-      setError(err.message || "Registration failed. Please try again.");
-    } finally { setLoading(false); }
-  };
+    if (token) {
+      localStorage.setItem("auth_token", token);
+    }
+
+  } catch (err) {
+    setError(err.message || "Registration failed.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   /* ── Progress bar width ── */
   const progressWidth = step === 1
@@ -429,17 +389,15 @@ const SignupPage = ({ onSignup, onGoToLogin }) => {
               {step === 2 && (
                 <>
                   {/* Type dropdown — Lab or Contractor */}
-                  <div>
-                    <label className={lbl}>Organization Type *</label>
-                    <select
-                      value={s2.type} onChange={upS2("type")}
-                      disabled={phoneOtpSent}
-                      className={`${inp} cursor-pointer`}
-                    >
-                      <option value="Lab">Lab</option>
-                    
-                    </select>
-                  </div>
+                <div>
+  <label className={lbl}>Organization Type *</label>
+  <input
+    type="text"
+    value="Lab"
+    disabled
+    className={inp}
+  />
+</div>
 
                   {/* Lab / Company name — always shown, label adapts */}
                   <div>
