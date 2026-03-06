@@ -435,9 +435,10 @@ const isRejected =
                               </button>
 
                               <button
-                                onClick={() =>
-                                  setRejectModal({ id: r.id, workName: r.workName })
-                                }
+                                onClick={() => {
+  setViewModal(null);
+  setRejectModal({ id: r.id, workName: r.workName });
+}}
                                 style={{
                                   padding: "7px 16px",
                                   borderRadius: 999,
@@ -631,7 +632,7 @@ color: "#ffffff",
 
       {/* ============= REJECT REASON MODAL ============= */}
       {rejectModal && (
-        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 4000 }}>
           <div style={{ background: "#fff", borderRadius: 16, padding: 24, maxWidth: 450, width: "90%", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
               <h3 style={{ fontSize: 16, fontWeight: 900, color: "#991b1b", margin: 0 }}>❌ Reject Report</h3>

@@ -11,7 +11,7 @@ import {
 } from "../../../services/api";
 import {
   User, Mail, Phone, MapPin, Building2, CreditCard,
-  Upload, Save, ChevronDown, AlertCircle, BadgeCheck, Edit2, X, Check, Loader
+  Upload, Save, ChevronDown, AlertCircle, BadgeCheck, Edit2, X, Check, Loader, Download, Eye
 } from "lucide-react";
 
 const AccountPage = () => {
@@ -125,7 +125,7 @@ useEffect(() => {
   if (!labData.labDistrict || districtData.length === 0) return;
 
   const filteredTalukas = districtData
-  .filter(item => item.district1?.trim() === labData.labDistrict)
+  .filter(item => item.district?.trim() === labData.labDistrict)
   .map(item => item.taluka?.trim())
   .filter(Boolean);
 
@@ -372,17 +372,19 @@ console.log("USERID:", finalUserId);
 
     try {
       const authToken = localStorage.getItem("auth_token");
-      const userId = localStorage.getItem("userId");
-      const userData = JSON.parse(localStorage.getItem("user_data"));
-      const userId2 = userData?._id || userData?.id;
 
-      if (!authToken || (!userId && !userId2)) {
-        alert("Session expired. Please login again.");
-        setLoading(false);
-        return;
-      }
+const userData = JSON.parse(localStorage.getItem("user_data") || "{}");
 
-      const finalUserId = userId || userId2;
+const finalUserId =
+  userData?._id ||
+  userData?.id ||
+  userData?.userId;
+
+if (!authToken || !finalUserId) {
+  alert("Session expired. Please login again.");
+  setLoading(false);
+  return;
+}
 
       console.log("📤 Starting profile update...");
 
@@ -506,6 +508,24 @@ console.log("✅ API Response:", result);
       setLoading(false);
     }
   };
+  // ===== VIEW DOCUMENT =====
+const viewDocument = (file) => {
+  if (!file) return;
+
+  const url = URL.createObjectURL(file);
+  window.open(url, "_blank");
+};
+
+// ===== DOWNLOAD DOCUMENT =====
+const downloadDocument = (file) => {
+  if (!file) return;
+
+  const url = URL.createObjectURL(file);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = file.name;
+  a.click();
+};
   const downloadProfilePDF = () => {
   const doc = new jsPDF();
 
@@ -533,8 +553,37 @@ console.log("✅ API Response:", result);
 
   doc.save("Lab_Profile_Info.pdf");
 };
+const downloadLabPDF = () => {
+  const doc = new jsPDF();
 
+  doc.setFontSize(16);
+  doc.text("Laboratory Information", 20, 20);
+
+  doc.text(`Lab Name: ${labData.labName}`, 20, 40);
+  doc.text(`Email: ${labData.labEmail}`, 20, 50);
+  doc.text(`Phone: ${labData.labPhone}`, 20, 60);
+  doc.text(`Address: ${labData.labAddress}`, 20, 70);
+  doc.text(`City: ${labData.labCity}`, 20, 80);
+  doc.text(`District: ${labData.labDistrict}`, 20, 90);
+  doc.text(`Taluka: ${labData.labTaluka}`, 20, 100);
+
+  doc.save("Lab_Info.pdf");
+};
+  const downloadBankPDF = () => {
+  const doc = new jsPDF();
   
+
+  doc.setFontSize(16);
+  doc.text("Bank Details", 20, 20);
+
+  doc.setFontSize(12);
+  doc.text(`Bank Name: ${labData.bankName}`, 20, 40);
+  doc.text(`Account Number: ${labData.accountNumber}`, 20, 50);
+  doc.text(`IFSC Code: ${labData.ifscCode}`, 20, 60);
+  doc.text(`Branch Name: ${labData.branchName}`, 20, 70);
+
+  doc.save("Bank_Details.pdf");
+};
   return (
     <>
       <style>{`
@@ -549,7 +598,10 @@ console.log("✅ API Response:", result);
           font-family: inherit; 
           box-sizing: border-box; 
         }
-        
+            .premium-input::placeholder {
+    color: #374151;
+    font-weight: 500;
+  }
         .premium-input:focus { 
           background: #ffffff; 
           border-color: #d1d5db; 
@@ -932,83 +984,115 @@ console.log("✅ API Response:", result);
 
         {/* LABORATORY INFO */}
         <div className="bg-white rounded-xl shadow-lg p-6 mb-6 border border-gray-200" style={{ marginLeft: 8 }}>
-          <div className="section-header">
-            <h2 className="section-title">Laboratory Information</h2>
-          </div>
-          <div className="grid grid-cols-2 gap-6">
-            <div className="col-span-2">
-              <label className="label-text block mb-2">Laboratory Name</label>
-              <input 
-  name="labName" 
-  value={labData.labName} 
-  readOnly
-  className="w-full premium-input"
-  style={{ backgroundColor: "#f9fafb", cursor: "not-allowed" }}
-/>
-            </div>
-            <div>
-              <label className="label-text block mb-2">Email Address</label>
-              <input 
-                name="labEmail" 
-                readOnly
-                value={labData.labEmail} 
-                onChange={handleChange} 
-                className="w-full premium-input" 
-                placeholder="Enter Email" 
-              />
-            </div>
-            <div>
-              <label className="label-text block mb-2">Address</label>
-              <input 
-                name="labAddress" 
-                value={labData.labAddress} 
-                onChange={handleChange} 
-                className="w-full premium-input" 
-                placeholder="Enter Your Address" 
-              />
-            </div>
-            <div>
-              <label className="label-text block mb-2">City</label>
-              <input 
-                name="labCity" 
-                value={labData.labCity} 
-                onChange={handleChange} 
-                className="w-full premium-input" 
-                placeholder="Enter City" 
-              />
-            </div>
-            <div>
-              <label className="label-text block mb-2">District</label>
-              <select 
-                name="labDistrict" 
-                value={labData.labDistrict} 
-                onChange={handleChange} 
-                className="w-full premium-input"
-              >
-                <option value="">Choose District</option>
-               {districtOptions.map(d => (
-  <option key={d} value={d}>{d}</option>
-))}
-              </select>
-            </div>
-            <div>
-              <label className="label-text block mb-2">Taluka</label>
-              <select 
-                name="labTaluka" 
-                value={labData.labTaluka} 
-                onChange={handleChange} 
-                className="w-full premium-input"
-              >
-                <option value="">Choose Taluka</option>
-               {talukaOptions.map(t => (
-  <option key={t} value={t}>{t}</option>
-))}
-              </select>
-            </div>
+         <div
+  className="section-header"
+  style={{
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between"
+  }}
+>
+  <h2
+    className="section-title"
+    style={{ margin: 0, textAlign: "left", flex: 1 }}
+  >
+    Laboratory Information
+  </h2>
 
-            {/* PHONE NUMBER WITH EDIT AND OTP */}
-            <div className="col-span-2">
-              <label className="label-text block mb-2">Phone Number</label>
+  <Download
+    size={18}
+    style={{ cursor: "pointer" }}
+    onClick={downloadLabPDF}
+  />
+</div><div className="grid grid-cols-2 gap-6">
+
+{/* ROW 1 */}
+<div>
+<label className="label-text block mb-2">Laboratory Name</label>
+<input 
+name="labName" 
+value={labData.labName} 
+readOnly
+className="w-full premium-input"
+style={{ backgroundColor: "#f9fafb", cursor: "not-allowed" }}
+/>
+</div>
+
+<div>
+<label className="label-text block mb-2">Email Address</label>
+<input 
+name="labEmail" 
+readOnly
+value={labData.labEmail} 
+onChange={handleChange} 
+className="w-full premium-input" 
+placeholder="Enter Email" 
+/>
+</div>
+
+{/* ROW 2 */}
+<div>
+<label className="label-text block mb-2">Address</label>
+<input 
+name="labAddress" 
+value={labData.labAddress} 
+onChange={handleChange} 
+className="w-full premium-input" 
+placeholder="Enter Your Address" 
+/>
+</div>
+
+<div>
+<label className="label-text block mb-2">City</label>
+<input 
+name="labCity" 
+value={labData.labCity} 
+onChange={handleChange} 
+className="w-full premium-input" 
+placeholder="Enter City" 
+/>
+</div>
+
+{/* ROW 3 */}
+<div>
+<label className="label-text block mb-2">District</label>
+<select 
+name="labDistrict" 
+value={labData.labDistrict} 
+onChange={handleChange} 
+className="w-full premium-input"
+>
+<option value="" disabled hidden>
+  Choose District
+</option>
+{districtOptions.map(d => (
+<option key={d} value={d}>{d}</option>
+))}
+</select>
+</div>
+
+<div>
+<label className="label-text block mb-2">Taluka</label>
+<select 
+name="labTaluka" 
+value={labData.labTaluka} 
+onChange={handleChange} 
+className="w-full premium-input"
+>
+<option value="" disabled hidden>
+  Choose Taluka
+</option>
+{talukaOptions.map(t => (
+<option key={t} value={t}>{t}</option>
+))}
+</select>
+</div>
+
+{/* ROW 4 */}
+<div className="col-span-2">
+<label className="label-text block mb-2">Phone Number</label>
+
+{/* KEEP YOUR PHONE OTP CODE EXACTLY HERE */}
               
               {!isEditingPhone ? (
                 // DISPLAY MODE
@@ -1170,9 +1254,11 @@ console.log("✅ API Response:", result);
 
         {/* DOCUMENTS */}
         <div className="bg-white rounded-xl shadow-lg p-6 mb-6 border border-gray-200" style={{ marginLeft: 8 }}>
-          <div className="section-header">
-            <h2 className="section-title">Documents & Certificates</h2>
-          </div>
+         <div className="section-header">
+  <h2 className="section-title">
+    Documents & Certificates
+  </h2>
+</div>
           <div className="grid grid-cols-2 gap-6">
             {[
               { label: "Registration / NABL Copy", name: "registrationDoc" },
@@ -1207,7 +1293,7 @@ console.log("✅ API Response:", result);
     </div>
   </div>
 )}
-               {labData[doc.name] && (
+  {labData[doc.name] && (
   <div
     style={{
       display: "flex",
@@ -1225,21 +1311,39 @@ console.log("✅ API Response:", result);
       📄 {labData[doc.name].name}
     </span>
 
-    <button
-      onClick={(e) => {
-        e.stopPropagation();
-        removeFile(doc.name);
-      }}
-      style={{
-        border: "none",
-        background: "transparent",
-        cursor: "pointer",
-        color: "#ef4444",
-        fontWeight: "bold"
-      }}
-    >
-      Remove
-    </button>
+    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+
+      {/* VIEW */}
+      <Eye
+        size={18}
+        style={{ cursor: "pointer", color: "#2563eb" }}
+        onClick={(e) => {
+          e.stopPropagation();
+          viewDocument(labData[doc.name]);
+        }}
+      />
+
+      {/* DOWNLOAD */}
+      <Download
+        size={18}
+        style={{ cursor: "pointer", color: "#059669" }}
+        onClick={(e) => {
+          e.stopPropagation();
+          downloadDocument(labData[doc.name]);
+        }}
+      />
+
+      {/* REMOVE */}
+      <X
+        size={18}
+        style={{ cursor: "pointer", color: "#ef4444" }}
+        onClick={(e) => {
+          e.stopPropagation();
+          removeFile(doc.name);
+        }}
+      />
+
+    </div>
   </div>
 )}
               </div>
@@ -1249,9 +1353,27 @@ console.log("✅ API Response:", result);
 
         {/* BANK DETAILS */}
         <div className="bg-white rounded-xl shadow-lg p-6 mb-6 border border-gray-200" style={{ marginLeft: 8 }}>
-          <div className="section-header">
-            <h2 className="section-title">Bank Details</h2>
-          </div>
+     <div
+  className="section-header"
+  style={{
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between"
+  }}
+>
+  <h2
+    className="section-title"
+    style={{ margin: 0, textAlign: "left", flex: 1 }}
+  >
+    Bank Details
+  </h2>
+
+  <Download
+    size={18}
+    style={{ cursor: "pointer" }}
+    onClick={downloadBankPDF}
+  />
+</div>
           <div className="grid grid-cols-2 gap-4 mb-6">
             {[
               { label: "Bank Name", name: "bankName", placeholder: "Enter Bank Name" },
@@ -1273,30 +1395,32 @@ console.log("✅ API Response:", result);
           </div>
           <div className="doc-card">
             <h3 className="doc-label text-gray-900 mb-2">Cancel Cheque Photo</h3>
-            
-            <div 
-              className={`drag-drop-zone ${dragActive.cancelChequePic ? 'active' : ''}`} 
-              onDragOver={(e) => handleDrag(e, 'cancelChequePic')} 
-              onDragLeave={() => handleDragLeave('cancelChequePic')} 
-              onDrop={(e) => handleDrop(e, 'cancelChequePic')} 
-              onClick={() => document.getElementById('cancelChequePic').click()}
-            >
-              <input 
-                id="cancelChequePic" 
-                name="cancelChequePic" 
-                type="file" 
-                onChange={handleChange} 
-                accept=".jpg,.png,.jpeg" 
-              />
-              <div className="drag-drop-content">
-                <div className="drag-drop-icon">📸</div>
-                <div>
-                  <p className="font-bold text-gray-900 text-xs">Drag & Drop</p>
-                  <p className="text-xs text-gray-600">or click</p>
-                </div>
-              </div>
-            </div>
-       {labData.cancelChequePic && (
+            {!labData.cancelChequePic && (
+  <div 
+    className={`drag-drop-zone ${dragActive.cancelChequePic ? 'active' : ''}`} 
+    onDragOver={(e) => handleDrag(e, 'cancelChequePic')} 
+    onDragLeave={() => handleDragLeave('cancelChequePic')} 
+    onDrop={(e) => handleDrop(e, 'cancelChequePic')} 
+    onClick={() => document.getElementById('cancelChequePic').click()}
+  >
+    <input 
+      id="cancelChequePic" 
+      name="cancelChequePic" 
+      type="file" 
+      onChange={handleChange} 
+      accept=".jpg,.png,.jpeg" 
+    />
+
+    <div className="drag-drop-content">
+      <div className="drag-drop-icon">📸</div>
+      <div>
+        <p className="font-bold text-gray-900 text-xs">Drag & Drop</p>
+        <p className="text-xs text-gray-600">or click</p>
+      </div>
+    </div>
+  </div>
+)}
+  {labData.cancelChequePic && (
   <div
     style={{
       display: "flex",
@@ -1310,23 +1434,40 @@ console.log("✅ API Response:", result);
       fontWeight: "600"
     }}
   >
-    <span>📄 {labData.cancelChequePic.name}</span>
+    <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+      📄 {labData.cancelChequePic.name}
+    </span>
 
-    <button
-      onClick={(e) => {
-        e.stopPropagation();
-        removeFile("cancelChequePic");
-      }}
-      style={{
-        border: "none",
-        background: "transparent",
-        cursor: "pointer",
-        color: "#ef4444",
-        fontWeight: "bold"
-      }}
-    >
-      Remove
-    </button>
+    <div style={{ display: "flex", gap: "12px" }}>
+      
+      <Eye
+        size={18}
+        style={{ cursor: "pointer", color: "#2563eb" }}
+        onClick={(e) => {
+          e.stopPropagation();
+          viewDocument(labData.cancelChequePic);
+        }}
+      />
+
+      <Download
+        size={18}
+        style={{ cursor: "pointer", color: "#059669" }}
+        onClick={(e) => {
+          e.stopPropagation();
+          downloadDocument(labData.cancelChequePic);
+        }}
+      />
+
+      <X
+        size={18}
+        style={{ cursor: "pointer", color: "#ef4444" }}
+        onClick={(e) => {
+          e.stopPropagation();
+          removeFile("cancelChequePic");
+        }}
+      />
+
+    </div>
   </div>
 )}
           </div>
@@ -1365,6 +1506,21 @@ console.log("✅ API Response:", result);
 
         {/* SUBMIT BUTTON */}
         <div className="flex justify-center gap-4 mb-8">
+          {saved && (
+  <div
+    style={{
+      background: "#dcfce7",
+      color: "#166534",
+      padding: "12px",
+      borderRadius: "8px",
+      marginBottom: "16px",
+      fontWeight: "700",
+      textAlign: "center"
+    }}
+  >
+    Profile updated successfully ✅
+  </div>
+)}
         <button 
   onClick={handleSubmit}
   disabled={loading}
@@ -1373,22 +1529,24 @@ console.log("✅ API Response:", result);
     borderRadius: 12,
     border: "none",
     fontWeight: 800,
-    background: "#000",
-    color: "#fff"
+    background: saved ? "#16a34a" : "#f5c100",
+    color: saved ? "#fff" : "#000",
+    cursor: loading ? "not-allowed" : "pointer",
+    minWidth: "180px"
   }}
 >
-Update Info
+{loading ? "Updating Info..." : saved ? "Saved ✓" : "Update Info"}
 </button>
 
 <button 
-  onClick={downloadProfilePDF}
+ onClick={downloadProfilePDF}
   style={{
     padding: "12px 32px",
     borderRadius: 12,
     border: "none",
     fontWeight: 800,
-    background: "#2563eb",
-    color: "#fff"
+    background: "#f5c100",
+    color: "#000"
   }}
 >
 Download PDF

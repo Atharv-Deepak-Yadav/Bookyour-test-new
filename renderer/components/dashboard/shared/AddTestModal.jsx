@@ -6,7 +6,7 @@ import { addTest } from "../../../services/api";
 // ── Plain text Field ─────────────────────────────────────────────────────────
 const Field = ({ label, icon: Icon, value, onChange, type = "text", placeholder = "", readOnly = false }) => (
   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-    <label style={{ fontSize: 10, fontWeight: 900, textTransform: "uppercase", letterSpacing: ".15em", color: "#9ca3af" }}>{label}</label>
+   <label style={{ fontSize: 10, fontWeight: 900, textTransform: "uppercase", letterSpacing: ".15em", color: "#1f2937" }}>{label}</label>
     <div style={{ position: "relative" }}>
       <Icon size={14} color="#d1d5db" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
       <input
@@ -22,7 +22,7 @@ const Field = ({ label, icon: Icon, value, onChange, type = "text", placeholder 
 // ── Dropdown Field ───────────────────────────────────────────────────────────
 const SelectField = ({ label, icon: Icon, value, onChange, options = [], loading = false, placeholder = "Select...", disabled=false })=> (
   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-    <label style={{ fontSize: 10, fontWeight: 900, textTransform: "uppercase", letterSpacing: ".15em", color: "#9ca3af" }}>{label}</label>
+  <label style={{ fontSize: 10, fontWeight: 900, textTransform: "uppercase", letterSpacing: ".15em", color: "#1f2937" }}>{label}</label>
     <div style={{ position: "relative" }}>
       <Icon size={14} color="#d1d5db" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", zIndex: 1 }} />
       <ChevronDown size={13} color="#d1d5db" style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />

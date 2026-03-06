@@ -84,8 +84,13 @@ const TestDetailModal = ({ test, onClose }) => {
   }, []);
 
   if (!test) return null;
+  console.log("MODAL TEST DATA:", test);
+console.log("MODAL TEST DATA:", test);
 
-  const busy = uploading || submitting;
+const isApproved = test?.status?.toLowerCase() === "approved";
+
+const busy = uploading || submitting;
+
 
   // ── STEP 1: Upload PDF ──────────────────────────────────────────────────────
   const handleFileUpload = async (event) => {
@@ -358,18 +363,19 @@ const TestDetailModal = ({ test, onClose }) => {
                         href={doc.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 10,
-                          padding: "11px 14px",
-                          borderRadius: 12,
-                          fontSize: 12,
-                          fontWeight: 700,
-                          background: "linear-gradient(135deg,#1a1a1a,#2d2d2d)",
-                          color: "#f5c100",
-                          textDecoration: "none",
-                        }}
+                       style={{
+  display: "flex",
+  alignItems: "center",
+  gap: 10,
+  padding: "11px 14px",
+  borderRadius: 12,
+  fontSize: 12,
+  fontWeight: 700,
+  background: "linear-gradient(135deg,#f5c100,#e6a800)",
+  color: "#1a0f00",
+  border: "1.5px solid #e6a800",
+  textDecoration: "none",
+}}
                       >
                         <FileText size={15} />
                         {doc.name}
@@ -491,41 +497,47 @@ const TestDetailModal = ({ test, onClose }) => {
               <div>
                 <SL>Upload Report (PDF only, max 5MB)</SL>
                 <div style={{ marginTop: 8 }}>
-                  <input
-                    type="file"
-                    accept=".pdf,application/pdf"
-                    onChange={handleFileUpload}
-                    disabled={busy}
-                    id="file-upload"
-                    style={{ display: "none" }}
-                  />
-                  <label
-                    htmlFor="file-upload"
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: 8,
-                      padding: 12,
-                      borderRadius: 12,
-                      fontSize: 13,
-                      fontWeight: 800,
-                      background: busy
-                        ? "#e5e7eb"
-                        : "linear-gradient(135deg,#f5c100,#e6a800)",
-                      color: busy ? "#9ca3af" : "#1a0f00",
-                      border: `2px dashed ${busy ? "#d1d5db" : "#e6a800"}`,
-                      cursor: busy ? "not-allowed" : "pointer",
-                      transition: "all 0.2s",
-                    }}
-                  >
-                    <Upload size={15} />
-                    {uploading
-                      ? `Uploading… ${uploadProgress}%`
-                      : uploadedReport
-                        ? "✓ Uploaded — Click to Replace"
-                        : "Choose PDF to Upload"}
-                  </label>
+                <input
+  type="file"
+  accept=".pdf,application/pdf"
+  onChange={handleFileUpload}
+  disabled={busy || isApproved}
+  id="file-upload"
+  style={{ display: "none" }}
+/><label
+  htmlFor={!isApproved ? "file-upload" : undefined}
+  title={isApproved ? "Your report is already approved" : ""}
+  style={{
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    padding: 12,
+    borderRadius: 12,
+    fontSize: 13,
+    fontWeight: 800,
+    background: isApproved
+      ? "#e5e7eb"
+      : busy
+      ? "#e5e7eb"
+      : "linear-gradient(135deg,#f5c100,#e6a800)",
+    color: isApproved ? "#6b7280" : busy ? "#9ca3af" : "#1a0f00",
+    border: `2px dashed ${
+      isApproved ? "#d1d5db" : busy ? "#d1d5db" : "#e6a800"
+    }`,
+    cursor: isApproved ? "not-allowed" : busy ? "not-allowed" : "pointer",
+  }}
+>
+  <Upload size={15} />
+
+  {isApproved
+    ? "Report Already Approved"
+    : uploading
+    ? `Uploading… ${uploadProgress}%`
+    : uploadedReport
+    ? "✓ Uploaded — Click to Replace"
+    : "Choose PDF to Upload"}
+</label>
 
                   {/* Progress bar */}
                   {uploading && (
@@ -702,7 +714,7 @@ const TestDetailModal = ({ test, onClose }) => {
             </button>
             <button
               onClick={handleSubmit}
-              disabled={!uploadedReport || submitting}
+              disabled={!uploadedReport || submitting || isApproved}
               style={{
                 padding: "9px 24px",
                 borderRadius: 10,
@@ -733,7 +745,7 @@ const SL = ({ children }) => (
       fontWeight: 900,
       textTransform: "uppercase",
       letterSpacing: ".18em",
-      color: "#9ca3af",
+      color: "#1f2937", 
       margin: "0 0 10px",
     }}
   >
@@ -743,19 +755,26 @@ const SL = ({ children }) => (
 
 const D = ({ label, value }) => (
   <div style={{ marginBottom: 14 }}>
+    {/* LABEL */}
     <div
       style={{
-        fontSize: 9,
-        fontWeight: 900,
-        textTransform: "uppercase",
-        letterSpacing: ".15em",
-        color: "#9ca3af",
-        marginBottom: 3,
+        fontSize: 11,
+        fontWeight: 700,
+        color: "#111827",
+        marginBottom: 4,
       }}
     >
       {label}
     </div>
-    <div style={{ fontSize: 13, fontWeight: 700, color: "#1a1a1a" }}>
+
+    {/* VALUE / PLACEHOLDER */}
+    <div
+      style={{
+        fontSize: 12,
+        fontWeight: 500,
+        color: value && value !== "N/A" ? "#374151" : "#9ca3af",
+      }}
+    >
       {value || "N/A"}
     </div>
   </div>

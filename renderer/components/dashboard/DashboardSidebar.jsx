@@ -35,7 +35,6 @@ const DashboardSidebar = ({
     const userData = JSON.parse(localStorage.getItem("user_data"));
     const status = userData?.status || userData?.approvalStatus;
 
-    // allow only My Account if not approved
     if (status !== "Approved" && pageKey !== "account") {
       setShowPopup(true);
       return;
@@ -45,6 +44,9 @@ const DashboardSidebar = ({
   };
 
   const sidebarWidth = isCollapsed ? 72 : 240;
+
+  const userData = JSON.parse(localStorage.getItem("user_data"));
+  const isApproved = userData?.status === "Approved" || userData?.approvalStatus === "Approved";
 
   return (
     <>
@@ -61,36 +63,39 @@ const DashboardSidebar = ({
           transition: "width 0.3s ease",
           zIndex: 1000,
           boxShadow: "2px 0 8px rgba(0,0,0,0.1)",
+          userSelect: "none",
         }}
       >
         {/* TOP SECTION */}
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            paddingTop: "20px",
-          }}
-        >
-          {/* TOGGLE BUTTON */}
-          <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            style={{
-              width: "32px",
-              height: "32px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              borderRadius: "8px",
-              background: "#000",
-              border: "none",
-              cursor: "pointer",
-              transition: "all 0.3s",
-              boxShadow: "0 2px 6px rgba(0,0,0,0.3)",
-            }}
-            onMouseEnter={(e) => (e.target.style.background = "#333")}
-            onMouseLeave={(e) => (e.target.style.background = "#000")}
-          >
+  <div
+  style={{
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    paddingTop: "50px",
+    paddingBottom: "10px",
+    position: "relative",
+    width: "100%"
+  }}
+>{/* TOGGLE BUTTON */}
+  <button
+  onClick={() => setIsCollapsed(!isCollapsed)}
+  style={{
+    position: "absolute",
+    top: "10px",
+    right: "10px",
+    width: "32px",
+    height: "32px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: "8px",
+    background: "#000",
+    border: "none",
+    cursor: "pointer",
+    zIndex: 5
+  }}
+>
             {isCollapsed ? (
               <Menu size={16} color="white" />
             ) : (
@@ -98,7 +103,7 @@ const DashboardSidebar = ({
             )}
           </button>
 
-          <div style={{ height: "24px" }} />
+         <div style={{ height: isCollapsed ? "8px" : "24px" }} />
 
           {/* LOGO */}
           <div
@@ -153,24 +158,30 @@ const DashboardSidebar = ({
         </div>
 
         {/* NAVIGATION */}
-        <nav
-          style={{
-            flex: 1,
-            marginTop: "32px",
-            padding: "8px",
-            display: "flex",
-            flexDirection: "column",
-            gap: "4px",
-            overflowY: "auto",
-          }}
-        >
+  <nav
+  style={{
+    flex: 1,
+    marginTop: isCollapsed ? "10px" : "32px",
+    padding: "8px",
+    display: "flex",
+    flexDirection: "column",
+    gap: isCollapsed ? "18px" : "4px",
+    overflowY: "auto",
+  }}
+>
           {menuItems.map((item) => {
             const isActive = activePage === item.pageKey;
+            const isRestricted = !isApproved && item.pageKey !== "account";
 
             return (
               <button
                 key={item.pageKey}
-                onClick={() => handleNavigation(item.pageKey)}
+                onClick={() => {
+                  window.getSelection()?.removeAllRanges();
+                  handleNavigation(item.pageKey);
+                }}
+                onMouseDown={(e) => e.preventDefault()}
+                disabled={isRestricted}
                 title={isCollapsed ? item.label : ""}
                 style={{
                   width: "100%",
@@ -180,20 +191,32 @@ const DashboardSidebar = ({
                   borderRadius: "12px",
                   padding: isCollapsed ? "12px" : "12px 16px",
                   border: "none",
-                  cursor: "pointer",
-                  transition: "all 0.2s",
-                  background: isActive ? "#fff" : "transparent",
+                  cursor: isRestricted ? "not-allowed" : "pointer",
+                  backgroundColor: isActive ? "#ffffff" : "transparent",
                   justifyContent: isCollapsed ? "center" : "flex-start",
                   height: "48px",
+                  transition: "all 0.2s",
+                  userSelect: "none",
+                  outline: "none",
+                  WebkitTapHighlightColor: "transparent",
+                  opacity: isRestricted ? 0.6 : 1,
+                  boxShadow: "none",
+                  // ✅ Force transparent background on disabled buttons
+                  background: isRestricted ? "transparent !important" : isActive ? "#ffffff" : "transparent",
                 }}
                 onMouseEnter={(e) => {
-                  if (!isActive) {
-                    e.target.style.background = "rgba(255,255,255,0.2)";
+                  if (!isActive && !isRestricted) {
+                    e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.25)";
+                  } else if (isRestricted) {
+                    // ✅ Keep restricted buttons transparent on hover
+                    e.currentTarget.style.backgroundColor = "transparent";
+                    e.currentTarget.style.background = "transparent";
                   }
                 }}
                 onMouseLeave={(e) => {
                   if (!isActive) {
-                    e.target.style.background = "transparent";
+                    e.currentTarget.style.backgroundColor = "transparent";
+                    e.currentTarget.style.background = isRestricted ? "transparent !important" : "transparent";
                   }
                 }}
               >
@@ -212,6 +235,7 @@ const DashboardSidebar = ({
                         fontWeight: "700",
                         fontSize: "14px",
                         color: isActive ? "#d97706" : "rgba(0,0,0,0.7)",
+                        userSelect: "none",
                       }}
                     >
                       {item.label}
@@ -237,10 +261,8 @@ const DashboardSidebar = ({
         {/* FOOTER */}
         <div
           style={{
-            paddingBottom: "24px",
-            paddingTop: "16px",
-            paddingLeft: "8px",
-            paddingRight: "8px",
+         padding: "16px",
+marginTop: "auto",
             borderTop: "1px solid rgba(255,255,255,0.2)",
             display: "flex",
             flexDirection: "column",
