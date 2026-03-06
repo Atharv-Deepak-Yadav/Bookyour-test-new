@@ -104,7 +104,7 @@ export const emailVerifyOtp = async (email, emailotp) => {
   const response = await fetch(`${API_BASE_URL}/EmailVerifyOtp`, {
     method: "POST",
     headers: getPublicHeaders(),
-    body: JSON.stringify({ email, emailotp }),
+    body: JSON.stringify({ email, otp: emailotp }),
   });
   const data = await response.json();
   console.log("✅ EmailVerifyOtp:", data);
@@ -176,7 +176,7 @@ export const registrationPhoneVerify = async ({
     method: "POST",
     headers: getPublicHeaders(),
     body: JSON.stringify({
-      ph: phone,
+     ph: Number(phone),
       otp: Number(otp),
       name: name,
       lastName: lastName,
@@ -230,11 +230,11 @@ export const updateAccountPhoneSendOtp = async (phone) => {
 
 export const updateAccountPhoneVerifyOtp = async ({ userId, phoneNumber, otp }) => {
   const authToken = localStorage.getItem("auth_token");
-  const payload = {
-    _id: userId,
-    phoneNumber: Number(phoneNumber),
-    phoneNumberOTP: Number(otp),
-  };
+const payload = {
+  _id: userId,
+  phoneNumber: Number(phoneNumber),
+  otp: Number(otp),
+};
 console.log("📤 VERIFY PHONE PAYLOAD:", payload);
   const response = await fetch(`${API_BASE_URL}/verifyAndUpdateaccountPhone`, {
     method: "POST",
@@ -321,6 +321,23 @@ export const addTest = async ({ title, test, unit, price, expiredDate }) => {
     throw new Error(`API failed: ${response.status} - ${errJson.message || ""}`);
   }
   return await response.json();
+};export const deleteTest = async (id) => {
+
+  const response = await fetch(`${API_BASE_URL}/delete_test`, {
+    method: "DELETE",
+    headers: getAuthHeaders(),
+    body: JSON.stringify({
+      _id: id
+    })
+  });
+
+  const data = await response.json();
+
+  if (!response.ok || !data.success) {
+    throw new Error(data.message || "Delete failed");
+  }
+
+  return data;
 };
 
 export const fetchDashboardData = async () => {
@@ -344,22 +361,19 @@ export const fetchMaterials = async () => {
   const data = await response.json();
   return Array.isArray(data) ? data : (data?.items || []);
 };
-
 export const transformApiData = (apiResponse) => {
   let items = [];
 
-  if (apiResponse?.totalTest?.items)       items = apiResponse.totalTest.items;
-  else if (apiResponse?.totalRooms?.items) items = apiResponse.totalRooms.items;
-  else if (apiResponse?.items)             items = apiResponse.items;
-  else if (apiResponse?.bookingData)       items = apiResponse.bookingData;
-  else if (Array.isArray(apiResponse))     items = apiResponse;
-  else console.log("⚠️ Unknown dashboard response format:", apiResponse);
+  if (apiResponse?.totalTest?.items) items = apiResponse.totalTest.items;
+  else if (apiResponse?.items) items = apiResponse.items;
+  else if (Array.isArray(apiResponse)) items = apiResponse;
 
-  if (!items || !items.length) return [];
+  if (!items.length) return [];
 
   return items.map((item) => {
+
     let finalStatus = "Pending";
-    if (item.status === "reject")              finalStatus = "Rejected";
+    if (item.status === "reject") finalStatus = "Rejected";
     else if (item.insepectorStatus === "Done") finalStatus = "Approved";
 
     return {
@@ -368,6 +382,19 @@ export const transformApiData = (apiResponse) => {
       taluka: item.selectDivision || "N/A",
       contractorName: item.userEmail?.split("@")[0] || "N/A",
       totalAmount: item.workOrderAmount || 0,
+
+      // ⭐ ADD THESE
+      panNumber: item.panNumber || "N/A",
+      aadhaarNumber: item.aadhaarNumber || "N/A",
+      registrationNumber: item.registrationNumber || "N/A",
+
+      documents: [
+        item.workOrderDocument && { name: "Work Order", url: item.workOrderDocument },
+        item.report && { name: "Report", url: item.report },
+      ].filter(Boolean),
+
+      materials: item.materials || [],
+
       status: finalStatus,
       rejectionReason: item.reason || "",
     };
@@ -395,7 +422,67 @@ export const labNameVerification = async (labName) => {
  * - fileUrl:   wix:document://... (for storing in DB)
  * - publicUrl: https://static.wixstatic.com/ugd/... (for pdf-lib to fetch)
  * - qrCodeUrl: QR image URL pointing to publicUrl
- */
+ */// ─────────────────────────────────────────────
+// 📋 REPORT UPLOAD ENDPOINTS
+// ─────────────────────────────────────────────
+
+
+// ✅ ADD THESE TWO APIs HERE
+
+export const post_uploadReport = async (file) => {
+
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const token = localStorage.getItem("auth_token");
+
+  const headers = {};
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`${API_BASE_URL}/uploadReport`, {
+    method: "POST",
+    headers,
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Upload failed: ${text}`);
+  }
+
+  const data = await response.json();
+  return data;
+};
+
+
+export const post_uploadFilewithQR = async ({
+  bookingId,
+  fileUrl,
+  editUrl,
+  qrCodeUrl
+}) => {
+
+  const response = await fetch(`${API_BASE_URL}/uploadFilewithQR`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify({
+      bookingId,
+      fileUrl,
+      editUrl,
+      qrCodeUrl
+    }),
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || err.message || `HTTP ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data;
+};
 export const uploadReport = async (file) => {
   console.log("📤 [UPLOAD REPORT] Uploading:", file.name, `(${(file.size / 1024).toFixed(1)} KB)`);
 
@@ -571,7 +658,6 @@ export const rejectReport = async (bookingId, reason) => {
   }
   return await response.json();
 };
-
 export default {
   setAuthToken,
   setUserData,
@@ -594,10 +680,16 @@ export default {
   fetchTestData,
   fetchDistrictTaluka,
   labNameVerification,
+
   // Report upload
   uploadReport,
   uploadReportBlob,
   submitReportWithQR,
+
+  // NEW APIs
+  post_uploadReport,
+  post_uploadFilewithQR,
+
   // Inspector
   fetchInspectorDashboard,
   acceptReport,

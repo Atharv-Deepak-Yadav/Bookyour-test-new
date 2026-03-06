@@ -144,19 +144,18 @@ const handleApprove = async (id, workName) => {
   }
 };
 const handleRejectSubmit = async () => {
-  if (!rejectReason.trim()) {
-    alert("⚠️ Please enter a reason for rejection");
-    return;
+
+  if (rejectReason.trim().length === 0) {
+    return; // stop if empty
   }
 
   if (submitting) return;
   setSubmitting(true);
 
   try {
+
     if (!useMockData) {
       await rejectReport(rejectModal.id, rejectReason);
-
-      // 🔥 IMPORTANT
       await loadReports();
     }
 
@@ -170,11 +169,13 @@ const handleRejectSubmit = async () => {
     setRejectReason("");
 
   } catch (err) {
+
     setSuccessMessage({
       type: "error",
       title: "Rejection Failed ❌",
       message: err.message,
     });
+
   } finally {
     setSubmitting(false);
   }
@@ -671,24 +672,34 @@ color: "#ffffff",
               >
                 Cancel
               </button>
-              <button 
-                onClick={handleRejectSubmit}
-                disabled={submitting || !rejectReason.trim()}
-                style={{ 
-                  flex: 1, 
-                  padding: 10, 
-                  borderRadius: 8, 
-                  fontSize: 12, 
-                  fontWeight: 800, 
-                  background: "#fef2f2", 
-                  color: "#991b1b", 
-                  border: "1.5px solid #fecaca", 
-                  cursor: submitting || !rejectReason.trim() ? "not-allowed" : "pointer",
-                  opacity: submitting || !rejectReason.trim() ? 0.6 : 1
-                }}
-              >
-                {submitting ? "Rejecting..." : "Confirm Rejection"}
-              </button>
+              <button
+  onClick={handleRejectSubmit}
+  disabled={submitting || rejectReason.trim().length === 0}
+  style={{
+    flex: 1,
+    padding: 10,
+    borderRadius: 8,
+    fontSize: 12,
+    fontWeight: 800,
+    background: rejectReason.trim()
+      ? "#fef2f2"
+      : "#f3f4f6",
+    color: rejectReason.trim()
+      ? "#991b1b"
+      : "#9ca3af",
+    border: "1.5px solid #fecaca",
+    cursor:
+      submitting || rejectReason.trim().length === 0
+        ? "not-allowed"
+        : "pointer",
+    opacity:
+      submitting || rejectReason.trim().length === 0
+        ? 0.6
+        : 1
+  }}
+>
+  {submitting ? "Rejecting..." : "Confirm Rejection"}
+</button>
             </div>
           </div>
         </div>

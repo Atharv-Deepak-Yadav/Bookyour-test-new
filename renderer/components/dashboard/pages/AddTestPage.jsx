@@ -1,7 +1,7 @@
 // components/dashboard/AddTestPage.jsx
 import { useState, useEffect } from "react";
 import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
-import { fetchMaterials, fetchTestData } from "../../../services/api";
+import { fetchMaterials, fetchTestData, deleteTest } from "../../../services/api";
 import AddTestModal from "../shared/AddTestModal";
 
 const fmt = (d) =>
@@ -18,8 +18,9 @@ const AddTestPage = () => {
   const [tableError,   setTableError]   = useState(null);
 
   // Modal
-  const [showModal, setShowModal] = useState(false);
-  const [editRow,   setEditRow]   = useState(null);
+ const [showModal, setShowModal] = useState(false);
+const [editRow,   setEditRow]   = useState(null);
+const [deleteId, setDeleteId] = useState(null);
 
   // Material dropdown options
   const [memberOptions,  setMemberOptions]  = useState([]);
@@ -27,13 +28,15 @@ const AddTestPage = () => {
   const [membersError,   setMembersError]   = useState(null);
 
   // Toast
-  const [toast, setToast] = useState({ show: false, type: "", msg: "" });
+  const [toast, setToast] = useState(null);
 
-  const showToast = (type, msg) => {
-    setToast({ show: true, type, msg });
-    setTimeout(() => setToast({ show: false, type: "", msg: "" }), 3500);
-  };
+ const showToast = (type, msg) => {
+  setToast({ type, msg });
 
+  setTimeout(() => {
+    setToast(null);
+  }, 3000);
+};
   // ── Fetch tests from API ─────────────────────────────────────────────────
   useEffect(() => {
     const loadTests = async () => {
@@ -132,10 +135,22 @@ useEffect(() => {
   };
 
   const handleEdit   = (row) => { setEditRow(row); setShowModal(true); };
-  const handleDelete = (id)  => {
+ const handleDelete = async (id) => {
+  try {
+
+    console.log("Deleting ID:", id);
+
+    await deleteTest(id);
+
     setRows((r) => r.filter((row) => row.id !== id));
-    showToast("error", "Test removed from catalogue.");
-  };
+
+    showToast("success", "Test deleted successfully.");
+
+  } catch (err) {
+    console.error("❌ Delete failed:", err.message);
+    showToast("error", "Delete failed.");
+  }
+};
   const openAdd = () => { setEditRow(null); setShowModal(true); };
 
   // ── Render ───────────────────────────────────────────────────────────────
@@ -143,7 +158,7 @@ useEffect(() => {
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
 
       {/* ── Toast ── */}
-      {toast.show && (
+      {toast && (
         <div style={{
           position:     "fixed",
           top:          24,
@@ -154,7 +169,7 @@ useEffect(() => {
           fontSize:     12,
           fontWeight:   700,
           boxShadow:    "0 8px 30px rgba(0,0,0,0.12)",
-          border:       `1.5px solid ${toast.type === "success" ? "#bbf7d0" : "#fecaca"}`,
+          border: `1.5px solid ${toast.type === "success" ? "#bbf7d0" : "#fecaca"}`,
           background:   toast.type === "success" ? "#f0fdf4" : "#fef2f2",
           color:        toast.type === "success" ? "#15803d" : "#dc2626",
           animation:    "toastIn 0.2s ease",
@@ -345,7 +360,7 @@ useEffect(() => {
                     {/* Delete */}
                     <td style={{ padding: "13px 20px" }}>
                       <button
-                        onClick={() => handleDelete(row.id)}
+                        onClick={() => setDeleteId(row.id)}
                         title="Delete"
                         style={{ width: 32, height: 32, borderRadius: 9, border: "1.5px solid #fecaca", background: "#fef2f2", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "all 0.15s" }}
                         onMouseEnter={(e) => (e.currentTarget.style.background = "#fee2e2")}
@@ -387,6 +402,73 @@ useEffect(() => {
           materialsError={membersError}
         />
       )}
+      {deleteId && (
+  <div style={{
+    position:"fixed",
+    inset:0,
+    background:"rgba(0,0,0,0.45)",
+    display:"flex",
+    alignItems:"center",
+    justifyContent:"center",
+    zIndex:100
+  }}>
+    <div style={{
+  background:"#fff",
+  padding:"36px 40px",
+  borderRadius:"18px",
+  width:"420px",
+  textAlign:"center",
+  boxShadow:"0 18px 60px rgba(0,0,0,0.25)"
+}}>
+      <h3 style={{marginBottom:10,fontWeight:800,fontSize:18}}>Confirm to delete?</h3>
+
+      <p style={{fontSize:14,color:"#6b7280"}}>
+        It will be removed permanently.
+      </p>
+
+      <div style={{
+        display:"flex",
+        gap:12,
+        marginTop:22,
+        justifyContent:"center"
+      }}>
+
+        <button
+          onClick={()=>setDeleteId(null)}
+          style={{
+          padding:"10px 22px",
+            borderRadius:10,
+            border:"1px solid #e5e7eb",
+            background:"#fff",
+            fontWeight:600,
+            cursor:"pointer"
+          }}
+        >
+          Cancel
+        </button>
+
+        <button
+          onClick={()=>{
+            handleDelete(deleteId);
+            setDeleteId(null);
+          }}
+          style={{
+            padding:"8px 18px",
+            borderRadius:10,
+            background:"#dc2626",
+            color:"#fff",
+            border:"none",
+            fontWeight:700,
+            cursor:"pointer"
+          }}
+        >
+          Delete
+        </button>
+
+      </div>
+    </div>
+  </div>
+)}
 
       <style>{`
         @keyframes spin    { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }

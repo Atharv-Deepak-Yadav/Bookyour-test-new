@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+
+import jsPDF from "jspdf";
 import { fetchDistrictTaluka } from "../../../services/api";
 
 
@@ -39,7 +41,7 @@ const AccountPage = () => {
   const [dragActive, setDragActive] = useState({});
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
-
+  const [otpExpired, setOtpExpired] = useState(false);
   // ========== PHONE EDIT STATES ==========
   const [isEditingPhone, setIsEditingPhone] = useState(false);
   const [newPhoneNumber, setNewPhoneNumber] = useState("");
@@ -175,14 +177,20 @@ useEffect(() => {
   };
 
   const handleDrop = (e, field) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive({ ...dragActive, [field]: false });
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      setLabData({ ...labData, [field]: e.dataTransfer.files[0] });
-    }
-  };
+  e.preventDefault();
+  e.stopPropagation();
+  setDragActive({ ...dragActive, [field]: false });
+  if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+    setLabData({ ...labData, [field]: e.dataTransfer.files[0] });
+  }
+};
 
+const removeFile = (field) => {
+  setLabData((prev) => ({
+    ...prev,
+    [field]: null
+  }));
+};
   // ========== PHONE NUMBER EDITING WITH OTP ==========
   const handleEditPhoneClick = () => {
     setIsEditingPhone(true);
@@ -205,12 +213,11 @@ useEffect(() => {
   // ========== STEP 1: SEND OTP ==========
   const handleSendOTP = async () => {
     setPhoneUpdateError("");
-
+    setOtpExpired(false);
     if (newPhoneNumber.length !== 10 || isNaN(newPhoneNumber)) {
       setPhoneUpdateError("Please enter a valid 10-digit phone number");
       return;
     }
-
     setPhoneUpdateLoading(true);
 
     try {
@@ -306,7 +313,10 @@ if (!userId) {
       }, 2000);
 
     } catch (error) {
-      console.error("❌ Error verifying OTP:", error);
+    console.error("❌ Error verifying OTP:", error);
+    if (error.message?.toLowerCase().includes("expired")) {
+        setOtpExpired(true);  // ← add this
+    }
       setPhoneUpdateError(error.message || "OTP verification failed");
     } finally {
       setPhoneUpdateLoading(false);
@@ -349,7 +359,13 @@ if (!userId) {
   };
 
   // ========== API INTEGRATION: SAVE DATA WITH FILE UPLOADS ==========
-  const handleSubmit = async () => {
+ const handleSubmit = async () => {
+
+  const authToken = localStorage.getItem("auth_token");
+
+  const userData = JSON.parse(localStorage.getItem("user_data") || "{}");
+  const finalUserId = userData?._id;
+
     console.log("TOKEN:", authToken);
 console.log("USERID:", finalUserId);
     setLoading(true);
@@ -408,7 +424,7 @@ console.log("USERID:", finalUserId);
         lastName: labData.lastName,
         labName: labData.labName,
         email: labData.labEmail,
-        phone: labData.labPhone,
+     phoneNumber: Number(labData.labPhone),
         address: labData.labAddress,
         city: labData.labCity,
         district: labData.labDistrict,
@@ -433,7 +449,7 @@ let response;
 
 try {
   response = await fetch(
-    "https://www.bookurtest.com/_functions/members",
+    "https://www.bookurtest.com/_functions/updateProfile",
     {
       method: "POST",
       headers: {
@@ -444,8 +460,8 @@ try {
     }
   );
 } catch (networkError) {
-  console.error("🚨 Network Error:", networkError);
-  alert("Network error. Please check your internet connection.");
+  console.error("🚨 API ERROR:", networkError);
+  alert("API request blocked. Backend CORS configuration required.");
   setLoading(false);
   return;
 }
@@ -490,6 +506,33 @@ console.log("✅ API Response:", result);
       setLoading(false);
     }
   };
+  const downloadProfilePDF = () => {
+  const doc = new jsPDF();
+
+  doc.setFontSize(16);
+  doc.text("Laboratory Profile Information", 20, 20);
+
+  doc.setFontSize(12);
+
+  doc.text(`Name: ${labData.name}`, 20, 40);
+  doc.text(`Last Name: ${labData.lastName}`, 20, 50);
+  doc.text(`Lab Name: ${labData.labName}`, 20, 60);
+  doc.text(`Email: ${labData.labEmail}`, 20, 70);
+  doc.text(`Phone: ${labData.labPhone}`, 20, 80);
+  doc.text(`Address: ${labData.labAddress}`, 20, 90);
+  doc.text(`City: ${labData.labCity}`, 20, 100);
+  doc.text(`District: ${labData.labDistrict}`, 20, 110);
+  doc.text(`Taluka: ${labData.labTaluka}`, 20, 120);
+
+  doc.text("Bank Details", 20, 140);
+
+  doc.text(`Bank Name: ${labData.bankName}`, 20, 150);
+  doc.text(`Account Number: ${labData.accountNumber}`, 20, 160);
+  doc.text(`IFSC Code: ${labData.ifscCode}`, 20, 170);
+  doc.text(`Branch Name: ${labData.branchName}`, 20, 180);
+
+  doc.save("Lab_Profile_Info.pdf");
+};
 
   
   return (
@@ -907,6 +950,7 @@ console.log("✅ API Response:", result);
               <label className="label-text block mb-2">Email Address</label>
               <input 
                 name="labEmail" 
+                readOnly
                 value={labData.labEmail} 
                 onChange={handleChange} 
                 className="w-full premium-input" 
@@ -1094,6 +1138,30 @@ console.log("✅ API Response:", result);
                       Cancel
                     </button>
                   </div>
+                  {otpExpired && (
+    <div style={{ marginTop: 12, textAlign: "center" }}>
+        <button
+            onClick={() => {
+                setOtpExpired(false);
+                setOtpCode("");
+                setPhoneUpdateError("");
+                handleSendOTP();
+            }}
+            disabled={phoneUpdateLoading}
+            style={{
+                background: "none",
+                border: "none",
+                color: "#2563eb",
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: "pointer",
+                textDecoration: "underline"
+            }}
+        >
+            {phoneUpdateLoading ? "Sending..." : "Resend OTP"}
+        </button>
+    </div>
+)}
                 </>
               )}
             </div>
@@ -1114,29 +1182,66 @@ console.log("✅ API Response:", result);
             ].map((doc, idx) => (
               <div key={idx} className="doc-card">
                 <h3 className="doc-label text-gray-900 mb-2">{doc.label}</h3>
-                <div 
-                  className={`drag-drop-zone ${dragActive[doc.name] ? 'active' : ''}`}
-                  onDragOver={(e) => handleDrag(e, doc.name)}
-                  onDragLeave={() => handleDragLeave(doc.name)}
-                  onDrop={(e) => handleDrop(e, doc.name)}
-                  onClick={() => document.getElementById(doc.name).click()}
-                >
-                  <input 
-                    id={doc.name} 
-                    name={doc.name} 
-                    type="file" 
-                    onChange={handleChange} 
-                    accept=".pdf,.jpg,.png,.jpeg" 
-                  />
-                  <div className="drag-drop-content">
-                    <div className="drag-drop-icon">📤</div>
-                    <div>
-                      <p className="font-bold text-gray-900 text-xs">Drag & Drop</p>
-                      <p className="text-xs text-gray-600">or click</p>
-                    </div>
-                  </div>
-                </div>
-                {labData[doc.name] && <div className="file-uploaded">{labData[doc.name].name}</div>}
+              {!labData[doc.name] && (
+  <div 
+    className={`drag-drop-zone ${dragActive[doc.name] ? 'active' : ''}`}
+    onDragOver={(e) => handleDrag(e, doc.name)}
+    onDragLeave={() => handleDragLeave(doc.name)}
+    onDrop={(e) => handleDrop(e, doc.name)}
+    onClick={() => document.getElementById(doc.name).click()}
+  >
+    <input 
+      id={doc.name} 
+      name={doc.name} 
+      type="file" 
+      onChange={handleChange} 
+      accept=".pdf,.jpg,.png,.jpeg" 
+    />
+
+    <div className="drag-drop-content">
+      <div className="drag-drop-icon">📤</div>
+      <div>
+        <p className="font-bold text-gray-900 text-xs">Drag & Drop</p>
+        <p className="text-xs text-gray-600">or click</p>
+      </div>
+    </div>
+  </div>
+)}
+               {labData[doc.name] && (
+  <div
+    style={{
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      padding: "10px 14px",
+      borderRadius: "8px",
+      background: "#f9fafb",
+      border: "1px solid #e5e7eb",
+      fontSize: "13px",
+      fontWeight: "600"
+    }}
+  >
+    <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+      📄 {labData[doc.name].name}
+    </span>
+
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        removeFile(doc.name);
+      }}
+      style={{
+        border: "none",
+        background: "transparent",
+        cursor: "pointer",
+        color: "#ef4444",
+        fontWeight: "bold"
+      }}
+    >
+      Remove
+    </button>
+  </div>
+)}
               </div>
             ))}
           </div>
@@ -1168,6 +1273,7 @@ console.log("✅ API Response:", result);
           </div>
           <div className="doc-card">
             <h3 className="doc-label text-gray-900 mb-2">Cancel Cheque Photo</h3>
+            
             <div 
               className={`drag-drop-zone ${dragActive.cancelChequePic ? 'active' : ''}`} 
               onDragOver={(e) => handleDrag(e, 'cancelChequePic')} 
@@ -1190,7 +1296,39 @@ console.log("✅ API Response:", result);
                 </div>
               </div>
             </div>
-            {labData.cancelChequePic && <div className="file-uploaded">{labData.cancelChequePic.name}</div>}
+       {labData.cancelChequePic && (
+  <div
+    style={{
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      padding: "10px 14px",
+      borderRadius: "8px",
+      background: "#f9fafb",
+      border: "1px solid #e5e7eb",
+      fontSize: "13px",
+      fontWeight: "600"
+    }}
+  >
+    <span>📄 {labData.cancelChequePic.name}</span>
+
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        removeFile("cancelChequePic");
+      }}
+      style={{
+        border: "none",
+        background: "transparent",
+        cursor: "pointer",
+        color: "#ef4444",
+        fontWeight: "bold"
+      }}
+    >
+      Remove
+    </button>
+  </div>
+)}
           </div>
         </div>
 
@@ -1226,28 +1364,35 @@ console.log("✅ API Response:", result);
         </div>
 
         {/* SUBMIT BUTTON */}
-        <div className="flex justify-center mb-8">
-          <button 
-            onClick={handleSubmit}
-            disabled={loading}
-            style={{
-              display: "flex", 
-              alignItems: "center", 
-              gap: 8,
-              padding: "12px 32px", 
-              borderRadius: 12, 
-              border: "none",
-              fontSize: 14, 
-              fontWeight: 800, 
-              cursor: loading ? "not-allowed" : "pointer",
-              background: saved ? "#16a34a" : "#000000",
-              color: "#ffffff",
-              boxShadow: saved ? "0 4px 16px rgba(22,163,74,0.35)" : "0 4px 16px rgba(0,0,0,0.2)",
-              opacity: loading ? 0.7 : 1,
-            }}
-          >
-            {loading ? "Uploading Documents...": saved ? <><BadgeCheck size={16} />Saved!</> : <><Save size={16} />Update Info</>}
-          </button>
+        <div className="flex justify-center gap-4 mb-8">
+        <button 
+  onClick={handleSubmit}
+  disabled={loading}
+  style={{
+    padding: "12px 32px",
+    borderRadius: 12,
+    border: "none",
+    fontWeight: 800,
+    background: "#000",
+    color: "#fff"
+  }}
+>
+Update Info
+</button>
+
+<button 
+  onClick={downloadProfilePDF}
+  style={{
+    padding: "12px 32px",
+    borderRadius: 12,
+    border: "none",
+    fontWeight: 800,
+    background: "#2563eb",
+    color: "#fff"
+  }}
+>
+Download PDF
+</button>
         </div>
       </div>
     </>

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Plus, X, FlaskConical, Ruler, IndianRupee, Calendar, ChevronDown, Loader2 } from "lucide-react";
 import { addTest } from "../../../services/api";
 
+
 // ── Plain text Field ─────────────────────────────────────────────────────────
 const Field = ({ label, icon: Icon, value, onChange, type = "text", placeholder = "", readOnly = false }) => (
   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -19,22 +20,26 @@ const Field = ({ label, icon: Icon, value, onChange, type = "text", placeholder 
 );
 
 // ── Dropdown Field ───────────────────────────────────────────────────────────
-const SelectField = ({ label, icon: Icon, value, onChange, options = [], loading = false, placeholder = "Select..." }) => (
+const SelectField = ({ label, icon: Icon, value, onChange, options = [], loading = false, placeholder = "Select...", disabled=false })=> (
   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
     <label style={{ fontSize: 10, fontWeight: 900, textTransform: "uppercase", letterSpacing: ".15em", color: "#9ca3af" }}>{label}</label>
     <div style={{ position: "relative" }}>
       <Icon size={14} color="#d1d5db" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", zIndex: 1 }} />
       <ChevronDown size={13} color="#d1d5db" style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
-      <select
-        value={value} onChange={onChange} disabled={loading}
+     <select
+  value={value}
+  onChange={onChange}
+  disabled={loading || disabled}
         style={{ width: "100%", padding: "10px 34px 10px 34px", borderRadius: 10, border: "1.5px solid #f0ede6", fontSize: 13, fontWeight: 600, color: value ? "#111" : "#9ca3af", background: "#fff", outline: "none", fontFamily: "inherit", boxSizing: "border-box", appearance: "none", cursor: loading ? "not-allowed" : "pointer", transition: "border-color 0.15s" }}
         onFocus={(e) => (e.target.style.borderColor = "#f5c100")}
         onBlur={(e)  => (e.target.style.borderColor = "#f0ede6")}
       >
         <option value="" disabled>{loading ? "Loading..." : placeholder}</option>
-        {options.map((opt, i) => (
-          <option key={i} value={opt.value}>{opt.label}</option>
-        ))}
+      {options.map((opt, i) => (
+  <option key={i} value={opt.value} style={{ color: "#111" }}>
+    {opt.label}
+  </option>
+))}
       </select>
     </div>
   </div>
@@ -51,6 +56,25 @@ const AddTestModal = ({ onClose, onSave, editData, materialOptions, materialsLoa
 const [selectedTest, setSelectedTest] = useState("");
 const [govtPrice, setGovtPrice] = useState(null);
 
+useEffect(() => {
+  if (editData) {
+
+    const formattedDate = editData.expiredDate
+      ? new Date(editData.expiredDate).toISOString().split("T")[0]
+      : "";
+
+    setSelectedMaterial(editData.material);
+    setSelectedTest(editData.test);
+
+    setForm({
+      material: editData.material,
+      test: editData.test,
+      unit: editData.unit,
+      expiredDate: formattedDate,
+      amount: editData.amount ?? ""
+    });
+  }
+}, [editData]);
   // When a material title is picked, auto-fill test / unit / price from the option's extra fields
  
 // 🔥 Unique materials (like District list)
@@ -86,13 +110,22 @@ useEffect(() => {
   );
 
   if (match) {
+    setForm(f => ({
+      ...f,
+      unit: match.unit
+    }));
+
     setGovtPrice(match.price);
   }
 
-}, [selectedTest, selectedMaterial]);
+}, [selectedMaterial, selectedTest]);
   const upd = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
   const handleSave = async () => {
+   if (editData && !form.expiredDate) {
+  setApiError("Expiry date is required.");
+  return;
+}
     if (!selectedMaterial || !selectedTest) {
   alert("Please select Material and Test.");
   return;
@@ -101,8 +134,8 @@ useEffect(() => {
     setApiError(null);
     try {
      await addTest({
-  title: form.material,
-  test: form.test,
+   title: selectedMaterial,
+  test: selectedTest,
   unit: form.unit,
   price: form.amount
     ? Number(form.amount)
@@ -152,11 +185,20 @@ useEffect(() => {
         <div style={{ padding: "22px 24px", display: "flex", flexDirection: "column", gap: 14 }}>
 
           {/* Submit error */}
-          {apiError && (
-            <div style={{ borderRadius: 10, padding: "10px 14px", background: "#fef2f2", border: "1.5px solid #fecaca", fontSize: 12, color: "#dc2626", fontWeight: 600 }}>
-              ❌ {apiError}
-            </div>
-          )}
+         {apiError && (
+  <div style={{
+    borderRadius: 12,
+    padding: "12px 16px",
+    background: "#fef2f2",
+    border: "1.5px solid #fecaca",
+    fontSize: 13,
+    color: "#dc2626",
+    fontWeight: 700,
+    boxShadow: "0 4px 14px rgba(220,38,38,0.15)"
+  }}>
+    ⚠ {apiError}
+  </div>
+)}
 
           {/* Fetch error */}
           {materialsError && (
@@ -175,9 +217,10 @@ useEffect(() => {
     placeholder="e.g. Basic test of cement"
   />
 ) : (
-  <SelectField
-    label="Add Testing Material"
-    icon={FlaskConical}
+ <SelectField
+  label="Add Testing Material"
+  icon={FlaskConical}
+  disabled={editData}
     value={selectedMaterial}
     onChange={(e) => {
       const value = e.target.value;
@@ -212,6 +255,7 @@ useEffect(() => {
 <SelectField
   label="Add Test"
   icon={FlaskConical}
+  disabled={editData}
   value={selectedTest}
   onChange={(e) => {
     setSelectedTest(e.target.value);
@@ -232,6 +276,7 @@ useEffect(() => {
 <SelectField
   label="Test Unit"
   icon={Ruler}
+  disabled={editData}
   value={form.unit}
   onChange={(e) =>
     setForm(f => ({ ...f, unit: e.target.value }))
