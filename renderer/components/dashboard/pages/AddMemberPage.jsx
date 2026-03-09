@@ -1,5 +1,7 @@
-import { useState } from "react";
+ import { useState } from "react";
 import { Check, Mail } from "lucide-react";
+import { emailVerification, emailVerifyOtp, SignupSendOtp } from "../../../services/api";
+import { registrationPhoneVerify } from "../../../services/api";
 
 const AddMemberPage = () => {
   const [form, setForm] = useState({
@@ -19,42 +21,80 @@ const AddMemberPage = () => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSendEmailOtp = (e) => {
-    e.preventDefault();
-    if (form.name.trim() && form.lastName.trim() && form.email.trim()) {
-      setEmailOtpSent(true);
-    } else {
-      alert("Please fill all fields");
-    }
-  };
+const handleSendEmailOtp = async (e) => {
+  e.preventDefault();
 
-  const handleVerifyEmailOtp = (e) => {
-    e.preventDefault();
-    if (form.emailOtp === "123456") {
-      setEmailOtpVerified(true);
-    } else {
-      alert("Invalid OTP. Try: 123456");
-    }
-  };
+  if (!form.name.trim() || !form.lastName.trim() || !form.email.trim()) {
+    alert("Please fill all fields");
+    return;
+  }
 
-  const handleSendPhoneOtp = (e) => {
-    e.preventDefault();
-    if (form.phone.length === 10) {
-      setPhoneOtpSent(true);
-    } else {
-      alert("Please enter valid 10-digit phone number");
-    }
-  };
+  try {
+    await emailVerification(form.email);   // 🔥 CALL API
+    setEmailOtpSent(true);
+    alert("OTP sent to your email");
+  } catch (err) {
+    alert(err.message);
+  }
+};
+const handleVerifyEmailOtp = async (e) => {
+  e.preventDefault();
 
-  const handleVerifyPhoneOtp = (e) => {
-    e.preventDefault();
-    if (form.phoneOtp === "123456") {
-      setPhoneOtpVerified(true);
-      alert("Member Created Successfully!");
-    } else {
-      alert("Invalid OTP. Try: 123456");
-    }
-  };
+  try {
+    await emailVerifyOtp(form.email, form.emailOtp);  // 🔥 CALL API
+    setEmailOtpVerified(true);
+    alert("Email verified successfully");
+  } catch (err) {
+    alert(err.message);
+  }
+};
+
+const handleSendPhoneOtp = async (e) => {
+  e.preventDefault();
+
+  if (form.phone.length !== 10) {
+    alert("Please enter valid 10-digit phone number");
+    return;
+  }
+
+  try {
+
+    console.log("Sending OTP to:", form.phone);
+
+    const res = await SignupSendOtp(Number(form.phone));
+
+    console.log("OTP API Response:", res);
+
+    setPhoneOtpSent(true);
+    alert("OTP sent to your phone");
+
+  } catch (err) {
+    console.error("OTP Error:", err);
+    alert(err.message);
+  }
+}; // ✅ THIS WAS MISSING
+
+const handleVerifyPhoneOtp = async (e) => {
+  e.preventDefault();
+
+  try {
+  const labData = JSON.parse(localStorage.getItem("user_data"));
+
+await registrationPhoneVerify({
+  phone: form.phone,
+  otp: form.phoneOtp,
+  name: form.name,
+  lastName: form.lastName,
+  email: form.email,
+  labName: labData.labName,
+  type: "inspector"
+});
+    setPhoneOtpVerified(true);
+    alert("Member Created Successfully!");
+  } catch (err) {
+    alert(err.message);
+  }
+};
 
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 32, padding: "20px" }}>
@@ -238,4 +278,4 @@ const AddMemberPage = () => {
   );
 };
 
-export default AddMemberPage;
+export default AddMemberPage;    

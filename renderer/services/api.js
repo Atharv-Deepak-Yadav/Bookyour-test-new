@@ -144,7 +144,10 @@ export const loginVerifyOtp = async (phone, otp) => {
   const response = await fetch(`${API_BASE_URL}/VerifyOtp`, {
     method: "POST",
     headers: getPublicHeaders(),
-    body: JSON.stringify({ ph: phone, otp: Number(otp) }),
+    body: JSON.stringify({
+  ph: Number(phone),
+  otp: Number(otp)
+}),
   });
   const data = await response.json();
   if (!response.ok || !data.success) {
@@ -157,20 +160,48 @@ export const loginVerifyOtp = async (phone, otp) => {
   else if (data.data?.token) setAuthToken(data.data.token);
 
   if (data.user)      setUserData(data.user);
-  else if (data.data) setUserData({ phone, ...data.data });
+else if (data.data) {
+  setUserData({
+    phone,
+    ...data.data,
+    type: data.data?.type || "Inspector"
+  });
+}
   else                setUserData({ phone });
 
   return data;
 };
+export const getMemberProfile = async (phone) => {
+  const token = localStorage.getItem("auth_token");
 
+  const response = await fetch(`${API_BASE_URL}/members?phone=${phone}`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch member profile: ${response.status}`);
+  }
+
+  const data = await response.json();
+  console.log("👤 Member profile:", data);
+
+  return data;
+};
 export const registrationPhoneVerify = async ({
   phone,
   otp,
   name,
   lastName,
   email,
-  labName
+  labName,
+  type
 }) => {
+
+  console.log("🔐 Sending registration with type:", type);
 
   const response = await fetch(`${API_BASE_URL}/RegistrationPhoneverify`, {
     method: "POST",
@@ -182,7 +213,7 @@ export const registrationPhoneVerify = async ({
       lastName: lastName,
       email: email,
       labName: labName,
-      type: "Lab"
+     type: type
     }),
   });
 
@@ -193,21 +224,19 @@ export const registrationPhoneVerify = async ({
     throw new Error(data.message || "Registration failed. Please try again.");
   }
 
-  if (data.token) setAuthToken(data.token);
-const userId =
-  data._id ||
-  data.user?._id ||
-  data.data?._id;
+ if (data.token) setAuthToken(data.token);
+
+const user = data.user || data.data || data;
 
 setUserData({
-  _id: userId,
+    _id: user._id,
   phone,
   name,
   lastName,
   email,
-  labName
+  labName,
+  type:"inspector"
 });
-
   return data;
 };
 

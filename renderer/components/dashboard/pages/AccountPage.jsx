@@ -3,11 +3,9 @@ import { useEffect, useState } from "react";
 import jsPDF from "jspdf";
 import { fetchDistrictTaluka } from "../../../services/api";
 
-
 import {
   SignupSendOtp,
-  updateAccountPhoneVerifyOtp,
-  
+  updateAccountPhoneVerifyOtp
 } from "../../../services/api";
 import {
   User, Mail, Phone, MapPin, Building2, CreditCard,
@@ -15,6 +13,10 @@ import {
 } from "lucide-react";
 
 const AccountPage = () => {
+   const userData =
+    typeof window !== "undefined"
+      ? JSON.parse(localStorage.getItem("user_data") || "{}")
+      : {};
   const [labData, setLabData] = useState({
     name: "",
     lastName: "",
@@ -70,7 +72,14 @@ const [talukaOptions, setTalukaOptions] = useState([]);
           ...prev,
           name: parsedUser.name || parsedUser.first_name || "",
           lastName: parsedUser.lastName || parsedUser.last_name || "",
-          labName: parsedUser.labName || parsedUser.lab_name || parsedUser.laboratory_name || "",
+        labName:
+  parsedUser.labName &&
+  parsedUser.labName.toLowerCase() !== "lab"
+    ? parsedUser.labName
+    : parsedUser.parentLabName ||
+      parsedUser.laboratory_name ||
+      parsedUser.lab_name ||
+      "",
           labEmail: parsedUser.email || parsedUser.labEmail || parsedUser.email_id || "",
           labPhone: parsedUser.phone || parsedUser.ph || parsedUser.labPhone || parsedUser.phoneNumber || "",
           labAddress: parsedUser.address || parsedUser.addr || parsedUser.labAddress || "",
@@ -145,9 +154,9 @@ useEffect(() => {
   // When district changes
   if (name === "labDistrict") {
 
-    const filteredTalukas = districtData
+const filteredTalukas = districtData
   .filter(item => item.district?.trim() === value)
-  .map(item => item.district1?.trim())
+  .map(item => item.taluka?.trim())
   .filter(Boolean);
 
     const uniqueTalukas = [...new Set(filteredTalukas)];
@@ -938,9 +947,9 @@ const downloadLabPDF = () => {
               <User size={32} color="#9ca3af" />
             </div>
             <div style={{ flex: 1 }}>
-              <h2 style={{ fontSize: 16, fontWeight: 900, color: "#111827", margin: 0 }}>
-                Welcome, {labData.name|| "User"}
-              </h2>
+             <h2 style={{ fontSize: 16, fontWeight: 900, color: "#111827", margin: 0 }}>
+Welcome, {userData?.name && userData.name !== "Inspector" ? userData.name : "User"}
+</h2>
             </div>
           </div>
         </div>

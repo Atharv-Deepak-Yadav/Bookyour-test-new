@@ -6,7 +6,7 @@
 
 /* ================= BASE ================= */
 
-@@layer base {
+@layer base {
   * {
     box-sizing: border-box;
   }
@@ -39,6 +39,8 @@
     outline: none;
   }
 
+
+  
   h1 {
     font-size: 22px;
     font-weight: 800;

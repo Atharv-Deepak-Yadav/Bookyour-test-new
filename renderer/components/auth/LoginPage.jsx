@@ -1,6 +1,7 @@
 import { useState } from "react";
 import AuthLayout from "./AuthLayout";
-import { loginSendOtp, loginVerifyOtp } from "../../services/api";
+import { loginSendOtp, loginVerifyOtp, getMemberProfile } from "../../services/api";
+
 
 export const InputField = ({
   label,
@@ -118,88 +119,88 @@ const LoginPage = ({ onLogin, onGoToSignup }) => {
       console.log("💾 Token saved to localStorage");
 
       // ========== STEP 3: Fetch user profile =========
-      console.log("📥 Fetching user profile...");
+// ========== STEP 3: Fetch user profile =========
+console.log("📥 Fetching user profile...");
 
-      const profileRes = await fetch(
-        `https://www.bookurtest.com/_functions/members?id=${phone}`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+const profileData = await getMemberProfile(phone);
 
-      if (!profileRes.ok) {
-        throw new Error(`Failed to fetch user profile: ${profileRes.status}`);
-      }
+console.log("📊 Profile response:", profileData);
 
-      const profileData = await profileRes.json();
-      console.log("📊 Profile response:", profileData);
+ let profile = null;
 
-      // ========== STEP 4: Extract profile from response =========
-      let profile = null;
+const normalize = (num) =>
+  String(num || "")
+    .replace(/\D/g, "")
+    .slice(-10);
 
-      // Try multiple extraction strategies based on API response format
-      if (Array.isArray(profileData) && profileData.length > 0) {
-        // Response is array - find user by phone
-        profile =
-          profileData.find((u) => u.phone === phone || u.ph === phone) ||
-          profileData[0];
-      } else if (profileData.data) {
-        // Response has .data property
-        if (Array.isArray(profileData.data)) {
-          profile =
-            profileData.data.find((u) => u.phone === phone || u.ph === phone) ||
-            profileData.data[0];
-        } else {
-          profile = profileData.data;
-        }
-      } else if (
-        profileData.phone ||
-        profileData.name ||
-        profileData.email
-      ) {
-        // Response is direct object with user fields
-        profile = profileData;
-      } else if (Object.keys(profileData).length > 0) {
-        // Response is any object
-        profile = profileData;
-      }
+// array response
+if (Array.isArray(profileData)) {
 
-      if (!profile) {
-        throw new Error("Unable to load user profile");
-      }
+  profile = profileData.find((u) => {
+
+    const userPhone =
+      normalize(u.phone) ||
+      normalize(u.phoneNumber) ||
+      normalize(u.mobile) ||
+      normalize(u.ph);
+
+    return userPhone === normalize(phone);
+  });
+
+}
+
+// {data: []}
+else if (profileData?.data && Array.isArray(profileData.data)) {
+
+  profile = profileData.data.find((u) => {
+
+    const userPhone =
+      normalize(u.phone) ||
+      normalize(u.phoneNumber) ||
+      normalize(u.mobile) ||
+      normalize(u.ph);
+
+    return userPhone === normalize(phone);
+  });
+
+}
+
+// single object
+else {
+  profile = profileData;
+}
+
+if (!profile) {
+  console.error("User not found for phone:", phone);
+  return;
+}
 
       console.log("✓ Extracted profile:", profile);
+      
 
-      // ========== STEP 5: Create user object for app state =========
-      const userObj = {
-        // IDs
-        _id: profile._id || profile.id || phone,
-        id: profile._id || profile.id || phone,
-        
-        // Basic info
-        phone: profile.phone || profile.ph || phone,
-      name: profile.name || profile.firstName || profile.first_name || "",
-        lastName: profile.lastName || profile.last_name || "",
-        email: profile.email || profile.email_id || "",
-        
-        // Lab/Organization info
-        labName:
-          profile.labName ||
-          profile.lab_name ||
-          profile.laboratory_name ||
-          "",
-        
-        // ⭐ APPROVAL STATUS - Check multiple possible field names
-        approvalStatus:
-          profile.approved ??
-          profile.isApproved ??
-          profile.status ??
-          profile.approvalStatus ??
-          false,
+const finalType = (
+  profile.type ||
+  profile.role ||
+  profile.userType ||
+  "inspector"
+).toString().trim().toLowerCase();
+const userObj = {
+  _id: profile._id || profile.id || phone,
+  id: profile._id || profile.id || phone,
+phone: profile.phone || profile.phoneNumber || profile.ph || phone,
+  name: profile.name || "",
+  lastName: profile.lastName || "",
+  email: profile.email || "",
+  labName: profile.labName || "",
+
+  type: finalType,
+
+  approvalStatus:
+    profile.approved ??
+    profile.isApproved ??
+    profile.status ??
+    profile.approvalStatus ??
+    false,
         
         // Address details
         address: profile.address || "",
