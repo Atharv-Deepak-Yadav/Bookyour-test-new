@@ -1,7 +1,8 @@
- import { useState } from "react";
+ import { useState, useEffect } from "react";
 import { Check, Mail } from "lucide-react";
 import { emailVerification, emailVerifyOtp, SignupSendOtp } from "../../../services/api";
 import { registrationPhoneVerify } from "../../../services/api";
+import { checkLabMemberLimit } from "../../../services/api";
 
 const AddMemberPage = () => {
   const [form, setForm] = useState({
@@ -16,6 +17,34 @@ const AddMemberPage = () => {
   const [emailOtpVerified, setEmailOtpVerified] = useState(false);
   const [phoneOtpSent, setPhoneOtpSent] = useState(false);
   const [phoneOtpVerified, setPhoneOtpVerified] = useState(false);
+  const [memberExists, setMemberExists] = useState(false);
+const [checkingMember, setCheckingMember] = useState(true);
+useEffect(() => {
+
+  const checkMember = async () => {
+
+    try {
+
+      const res = await checkLabMemberLimit();
+
+      console.log("API response:", res);
+
+      // 🔴 backend logic
+      if (res?.allowed === false) {
+        setMemberExists(true);
+      }
+
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setCheckingMember(false);
+    }
+
+  };
+
+  checkMember();
+
+}, []);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -81,8 +110,8 @@ const handleVerifyPhoneOtp = async (e) => {
   const labData = JSON.parse(localStorage.getItem("user_data"));
 
 await registrationPhoneVerify({
-  phone: form.phone,
-  otp: form.phoneOtp,
+   phone: Number(form.phone),
+ otp: Number(form.phoneOtp),
   name: form.name,
   lastName: form.lastName,
   email: form.email,
@@ -95,7 +124,28 @@ await registrationPhoneVerify({
     alert(err.message);
   }
 };
+if (checkingMember) {
+  return (
+    <div style={{ padding: 40 }}>
+      Checking member status...
+    </div>
+  );
+}
 
+if (memberExists) {
+  return (
+    <div style={{
+      padding: 40,
+      fontSize: 18,
+      fontWeight: 700,
+      color: "#dc2626",
+      textAlign: "center"
+    }}>
+    ⚠ Already member exists under this lab. <br/>
+      If you want to edit info then go to <b>My Account</b>.
+    </div>
+  );
+}
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 32, padding: "20px" }}>
       {/* MAIN FORM */}
@@ -189,7 +239,7 @@ await registrationPhoneVerify({
                 We've sent a secure code to <strong>{form.email}</strong>
               </p>
               <div style={{ display: "flex", gap: 12, marginBottom: 24 }}>
-                {[0, 1, 2, 3, 4, 5].map((i) => (
+                {[0, 1, 2, 3].map((i) => (
                   <input
                     key={i}
                     type="text"
@@ -201,7 +251,19 @@ await registrationPhoneVerify({
                       setForm({ ...form, emailOtp: newOtp });
                       if (value && e.target.nextSibling) e.target.nextSibling.focus();
                     }}
-                    style={{ width: 56, height: 56, textAlign: "center", fontSize: 20, fontWeight: 700, borderRadius: 12, border: "2px solid #dbeafe", outline: "none", background: "#fff" }}
+                    style={{
+ width: 56,
+ height: 56,
+ textAlign: "center",
+ fontSize: 20,
+ fontWeight: 700,
+ borderRadius: 12,
+ border: "2px solid #dbeafe",
+ outline: "none",
+ background: "#fff",
+ pointerEvents: "auto",
+ cursor: "text"
+}}
                   />
                 ))}
               </div>
@@ -234,13 +296,25 @@ await registrationPhoneVerify({
               <div style={{ marginTop: 16 }}>
                  <p style={{ fontSize: 14, color: "#b45309", margin: "0 0 16px", fontWeight: 700 }}>OTP sent to +91 {form.phone}</p>
                  <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
-                    {[0,1,2,3,4,5].map(i => (
+                    {[0,1,2,3].map(i => (
                       <input key={i} type="text" maxLength="1" value={form.phoneOtp[i] || ""} onChange={(e) => {
                         const val = e.target.value.replace(/[^0-9]/g, "");
                         const newOtp = form.phoneOtp.substring(0, i) + val + form.phoneOtp.substring(i + 1);
                         setForm({...form, phoneOtp: newOtp});
                         if (val && e.target.nextSibling) e.target.nextSibling.focus();
-                      }} style={{ width: 56, height: 56, textAlign: "center", fontSize: 20, fontWeight: 700, borderRadius: 12, border: "2px solid #fef3c7", outline: "none", background: "#fff" }} />
+                      }} style={{
+ width: 56,
+ height: 56,
+ textAlign: "center",
+ fontSize: 20,
+ fontWeight: 700,
+ borderRadius: 12,
+ border: "2px solid #fef3c7",
+ outline: "none",
+ background: "#fff",
+ pointerEvents: "auto",
+ cursor: "text"
+}} />
                     ))}
                  </div>
                  <button onClick={handleVerifyPhoneOtp} style={{ width: "100%", padding: "12px 24px", background: "#111827", color: "#fff", border: "none", borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Create Member</button>

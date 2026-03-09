@@ -141,33 +141,57 @@ export const SignupSendOtp = async (phone) => {
 };
 
 export const loginVerifyOtp = async (phone, otp) => {
+
   const response = await fetch(`${API_BASE_URL}/VerifyOtp`, {
     method: "POST",
     headers: getPublicHeaders(),
     body: JSON.stringify({
-  ph: Number(phone),
-  otp: Number(otp)
-}),
+      ph: Number(phone),
+      otp: Number(otp)
+    }),
   });
+
   const data = await response.json();
+
   if (!response.ok || !data.success) {
     throw new Error(data.message || `API Error: ${response.status}`);
   }
-  console.log("✅ VerifyOtp:", data);
 
-  if (data.token)            setAuthToken(data.token);
-  else if (data.accessToken) setAuthToken(data.accessToken);
-  else if (data.data?.token) setAuthToken(data.data.token);
+ // Extract user safely
+const user = data.user || data.data || {};
 
-  if (data.user)      setUserData(data.user);
-else if (data.data) {
-  setUserData({
-    phone,
-    ...data.data,
-    type: data.data?.type || "Inspector"
-  });
-}
-  else                setUserData({ phone });
+// Normalize approval status
+const rawStatus = user.approvalStatus || user.status || "";
+
+const approvalStatus =
+  String(rawStatus).toLowerCase() === "approved"
+    ? "approved"
+    : "pending";
+
+// Save user data
+setUserData({
+  _id: user._id || user.id,
+  phone: phone,
+  name:
+    user.name ||
+    user.firstName ||
+    user.first_name ||
+    "",
+  lastName:
+    user.lastName ||
+    user.last_name ||
+    "",
+  email:
+    user.email ||
+    user.email_id ||
+    "",
+  labName:
+    user.labName ||
+    user.lab_name ||
+    "",
+  type: user.type || "lab",
+  approvalStatus
+});
 
   return data;
 };
@@ -213,7 +237,7 @@ export const registrationPhoneVerify = async ({
       lastName: lastName,
       email: email,
       labName: labName,
-     type: type
+     type: "lab"
     }),
   });
 
@@ -229,13 +253,13 @@ export const registrationPhoneVerify = async ({
 const user = data.user || data.data || data;
 
 setUserData({
-    _id: user._id,
+  _id: user._id || user.id,
   phone,
-  name,
+ name: user.name || name,
   lastName,
   email,
   labName,
-  type:"inspector"
+  type: type || "lab"
 });
   return data;
 };
@@ -674,6 +698,35 @@ export const acceptReport = async (bookingId) => {
   }
   return await response.json();
 };
+export const checkLabMemberLimit = async () => {
+
+  const token = localStorage.getItem("auth_token");
+
+  if (!token) {
+    console.error("No auth token found");
+    return { memberExists: false };
+  }
+
+  const response = await fetch(
+    `${API_BASE_URL}/lab_member_limit`,
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    console.error("API Error:", data);
+    return { memberExists: false };
+  }
+
+  return data;
+};
 
 export const rejectReport = async (bookingId, reason) => {
   const response = await fetch(`${API_BASE_URL}/rejectReport`, {
@@ -722,5 +775,7 @@ export default {
   // Inspector
   fetchInspectorDashboard,
   acceptReport,
+
   rejectReport,
+    checkLabMemberLimit,
 };

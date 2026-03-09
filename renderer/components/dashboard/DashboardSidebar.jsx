@@ -1,4 +1,3 @@
-
 import {
   Home,
   User,
@@ -357,4 +356,4 @@ if (userType === "inspector") {
   );
 };
 
-export default DashboardSidebar; 
+export default DashboardSidebar;

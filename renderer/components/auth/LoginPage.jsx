@@ -1,7 +1,6 @@
 import { useState } from "react";
 import AuthLayout from "./AuthLayout";
-import { loginSendOtp, loginVerifyOtp, getMemberProfile } from "../../services/api";
-
+import { loginSendOtp, loginVerifyOtp } from "../../services/api";
 
 export const InputField = ({
   label,
@@ -26,7 +25,7 @@ export const InputField = ({
           marginBottom: 4,
         }}
       >
-      {label}
+        {label}
       </label>
       <input
         type={type}
@@ -48,192 +47,127 @@ export const InputField = ({
 };
 
 const LoginPage = ({ onLogin, onGoToSignup }) => {
-  // ──── State ────
-  const [step, setStep] = useState(1); // 1 = Enter Phone | 2 = Enter OTP
-  const [phone, setPhone] = useState("");
+  const [step, setStep]         = useState(1);
+  const [phone, setPhone]       = useState("");
   const [otpInput, setOtpInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState("");
+  const [success, setSuccess]   = useState("");
 
-  /* ────────────────────────────────────────────
-     STEP 1: Send OTP to phone number
-  ──────────────────────────────────────────── */
+  /* ── STEP 1: Send OTP ── */
   const handleSendOtp = async () => {
-    // Validate phone
     if (phone.length !== 10) {
       setError("Enter a valid 10-digit mobile number.");
       return;
     }
-
-    setError("");
-    setSuccess("");
-    setLoading(true);
-
+    setError(""); setSuccess(""); setLoading(true);
     try {
-      console.log("📱 Sending OTP to:", phone);
-      
-      // Call backend API to send OTP
       await loginSendOtp(phone);
-      
       setSuccess(`✓ OTP sent to +91 ${phone}`);
       setStep(2);
     } catch (err) {
-      console.error("❌ Send OTP error:", err);
       setError(err.message || "Failed to send OTP. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  /* ────────────────────────────────────────────
-     STEP 2: Verify OTP and Login
-  ──────────────────────────────────────────── */
+  /* ── STEP 2: Verify OTP & Login ── */
   const handleVerifyOtp = async () => {
-    // Validate OTP input
     if (!otpInput) {
       setError("Please enter the OTP.");
       return;
     }
-
-    setError("");
-    setSuccess("");
-    setLoading(true);
+    setError(""); setSuccess(""); setLoading(true);
 
     try {
-      console.log("🔐 Verifying OTP...");
-
-      // ========== STEP 1: Verify OTP with backend =========
+      // 1. Verify OTP — backend returns token + full user profile
       const res = await loginVerifyOtp(phone, otpInput);
+
       const token = res.token || res.authToken;
+      if (!token) throw new Error("Token not received from server");
 
-      if (!token) {
-        throw new Error("Token not received from server");
-      }
-
-      console.log("✅ OTP verified, token received");
-
-      // ========== STEP 2: Save token to localStorage =========
+      // 2. Save auth token
       localStorage.setItem("auth_token", token);
       localStorage.setItem("userId", phone);
-      console.log("💾 Token saved to localStorage");
 
-      // ========== STEP 3: Fetch user profile =========
-// ========== STEP 3: Fetch user profile =========
-console.log("📥 Fetching user profile...");
+      // 3. Build user object directly from loginVerifyOtp response
+      //    (no separate getMemberProfile call needed)
+      const profile = res.user || res.data || res;
 
-const profileData = await getMemberProfile(phone);
+      const normalize = (num) =>
+        String(num || "").replace(/\D/g, "").slice(-10);
 
-console.log("📊 Profile response:", profileData);
+      // Find correct profile if response is an array
+      let resolvedProfile = profile;
+      if (Array.isArray(profile)) {
+        resolvedProfile = profile.find((u) => {
+          const p =
+            normalize(u.phone) ||
+            normalize(u.phoneNumber) ||
+            normalize(u.mobile) ||
+            normalize(u.ph);
+          return p === normalize(phone);
+        }) || profile[0];
+      }
 
- let profile = null;
+      if (!resolvedProfile) throw new Error("User profile not found in response");
 
-const normalize = (num) =>
-  String(num || "")
-    .replace(/\D/g, "")
-    .slice(-10);
+      const finalType = String(
+        resolvedProfile.type ||
+        resolvedProfile.role ||
+        resolvedProfile.userType ||
+        "inspector"
+      ).trim().toLowerCase();
 
-// array response
-if (Array.isArray(profileData)) {
+      const userObj = {
+        _id:    resolvedProfile._id   || resolvedProfile.id || phone,
+        id:     resolvedProfile._id   || resolvedProfile.id || phone,
+        phone:  resolvedProfile.phone || resolvedProfile.phoneNumber || resolvedProfile.ph || phone,
+name:
+  resolvedProfile.name ||
+  resolvedProfile.firstName ||
+  resolvedProfile.first_name ||
+  resolvedProfile.username ||
+  resolvedProfile.userName ||
+  "",
 
-  profile = profileData.find((u) => {
-
-    const userPhone =
-      normalize(u.phone) ||
-      normalize(u.phoneNumber) ||
-      normalize(u.mobile) ||
-      normalize(u.ph);
-
-    return userPhone === normalize(phone);
-  });
-
-}
-
-// {data: []}
-else if (profileData?.data && Array.isArray(profileData.data)) {
-
-  profile = profileData.data.find((u) => {
-
-    const userPhone =
-      normalize(u.phone) ||
-      normalize(u.phoneNumber) ||
-      normalize(u.mobile) ||
-      normalize(u.ph);
-
-    return userPhone === normalize(phone);
-  });
-
-}
-
-// single object
-else {
-  profile = profileData;
-}
-
-if (!profile) {
-  console.error("User not found for phone:", phone);
-  return;
-}
-
-      console.log("✓ Extracted profile:", profile);
-      
-
-const finalType = (
-  profile.type ||
-  profile.role ||
-  profile.userType ||
-  "inspector"
-).toString().trim().toLowerCase();
-const userObj = {
-  _id: profile._id || profile.id || phone,
-  id: profile._id || profile.id || phone,
-phone: profile.phone || profile.phoneNumber || profile.ph || phone,
-  name: profile.name || "",
-  lastName: profile.lastName || "",
-  email: profile.email || "",
-  labName: profile.labName || "",
-
-  type: finalType,
-
-  approvalStatus:
-    profile.approved ??
-    profile.isApproved ??
-    profile.status ??
-    profile.approvalStatus ??
-    false,
-        
-        // Address details
-        address: profile.address || "",
-        city: profile.city || "",
-        district: profile.district || "",
-        taluka: profile.taluka || "",
-        
-        // Bank details
-        bankName: profile.bankName || "",
-        ifscCode: profile.ifscCode || "",
-        accountNumber: profile.accountNumber || "",
-        branchName: profile.branchName || "",
-        
-        // GST details
-        gstNumber: profile.gstNumber || "",
-        applyGst: profile.applyGst || "No",
+lastName:
+  resolvedProfile.lastName ||
+  resolvedProfile.last_name ||
+  resolvedProfile.surname ||
+  "",
+        email:      resolvedProfile.email     || "",
+        labName:    resolvedProfile.labName   || "",
+        type:       finalType,
+        approvalStatus:
+          resolvedProfile.approved      ??
+          resolvedProfile.isApproved    ??
+          resolvedProfile.status        ??
+          resolvedProfile.approvalStatus ??
+          false,
+        // Address
+        address:  resolvedProfile.address  || "",
+        city:     resolvedProfile.city     || "",
+        district: resolvedProfile.district || "",
+        taluka:   resolvedProfile.taluka   || "",
+        // Bank
+        bankName:      resolvedProfile.bankName      || "",
+        ifscCode:      resolvedProfile.ifscCode      || "",
+        accountNumber: resolvedProfile.accountNumber || "",
+        branchName:    resolvedProfile.branchName    || "",
+        // GST
+        gstNumber: resolvedProfile.gstNumber || "",
+        applyGst:  resolvedProfile.applyGst  || "No",
       };
 
-      console.log("👤 User object created:", userObj);
-
-      // ========== STEP 6: Save to localStorage =========
+      // 4. Save to localStorage
       localStorage.setItem("user_data", JSON.stringify(userObj));
-      console.log("💾 User data saved to localStorage");
+      console.log("✅ Login successful:", userObj);
 
-      // ========== STEP 7: Call onLogin callback =========
-      // This will:
-      // - Update index.jsx setUser(userData)
-      // - Show DashboardLayout instead of LoginPage
-      // - Dashboard will check approvalStatus and show/hide popup
-      if (onLogin) {
-        onLogin(userObj);
-        console.log("✅ Login successful! Redirecting to dashboard...");
-      }
+      // 5. Notify parent (index.jsx) — triggers routing by type
+      if (onLogin) onLogin(userObj);
+
     } catch (err) {
       console.error("❌ Login error:", err);
       setError(err.message || "Invalid OTP. Please try again.");
@@ -242,19 +176,10 @@ phone: profile.phone || profile.phoneNumber || profile.ph || phone,
     }
   };
 
-  /* ────────────────────────────────────────────
-     Reset and allow resend OTP
-  ──────────────────────────────────────────── */
   const handleResend = () => {
-    setStep(1);
-    setOtpInput("");
-    setError("");
-    setSuccess("");
+    setStep(1); setOtpInput(""); setError(""); setSuccess("");
   };
 
-  /* ────────────────────────────────────────────
-     Button styling
-  ──────────────────────────────────────────── */
   const primaryBtn = `w-full py-2.5 rounded-lg font-black text-sm uppercase tracking-wider transition-all flex items-center justify-center gap-2
     bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600
     hover:from-yellow-500 hover:to-yellow-700 text-gray-900
@@ -282,6 +207,7 @@ phone: profile.phone || profile.phoneNumber || profile.ph || phone,
   return (
     <AuthLayout backgroundImage="/images/login-bg.jpg">
       <div className="w-full max-w-7xl mx-auto grid grid-cols-2 gap-20 items-center">
+
         {/* ── LEFT PANEL ── */}
         <div className="space-y-7">
           <div>
@@ -311,11 +237,8 @@ phone: profile.phone || profile.phoneNumber || profile.ph || phone,
             Professional material testing solutions for civil construction
             projects. Manage tests, reports, and operations with precision and
             security.
-            <br />
-            <br />
-            <span className="font-black">
-              ✓ Certified • ✓ Accurate • ✓ Professional
-            </span>
+            <br /><br />
+            <span className="font-black">✓ Certified • ✓ Accurate • ✓ Professional</span>
           </p>
 
           <img
@@ -328,7 +251,7 @@ phone: profile.phone || profile.phoneNumber || profile.ph || phone,
         {/* ── RIGHT PANEL ── */}
         <div className="flex justify-center">
           <div className="w-full max-w-sm bg-white/95 backdrop-blur-xl rounded-2xl px-7 py-6 shadow-2xl border border-white/40">
-            {/* Header */}
+
             <div className="mb-4">
               <h2 className="text-xl font-black text-gray-900">
                 {step === 1 ? "🔓 Welcome Back" : "✓ Verify OTP"}
@@ -340,15 +263,11 @@ phone: profile.phone || profile.phoneNumber || profile.ph || phone,
               </p>
             </div>
 
-            {/* Error & Success Messages */}
             <ErrorBanner msg={error} />
             <SuccessBanner msg={!error ? success : ""} />
 
-            {/* Form Content */}
             <div className="space-y-2.5">
-              {/* ══════════════════════════════
-                  STEP 1 — Enter Phone Number
-              ══════════════════════════════ */}
+
               {step === 1 && (
                 <>
                   <div>
@@ -359,15 +278,12 @@ phone: profile.phone || profile.phoneNumber || profile.ph || phone,
                       type="tel"
                       placeholder="Enter 10-digit mobile number"
                       value={phone}
-                      onChange={(e) =>
-                        setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))
-                      }
+                      onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
                       onKeyDown={(e) => e.key === "Enter" && handleSendOtp()}
                       disabled={loading}
-                      className={`w-full px-3 py-2 rounded-lg border-2 bg-white outline-none text-gray-900 text-sm font-medium placeholder-gray-300 transition-all disabled:opacity-60 border-gray-200 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20`}
+                      className="w-full px-3 py-2 rounded-lg border-2 bg-white outline-none text-gray-900 text-sm font-medium placeholder-gray-300 transition-all disabled:opacity-60 border-gray-200 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20"
                     />
                   </div>
-
                   <button
                     onClick={handleSendOtp}
                     disabled={loading || phone.length !== 10}
@@ -379,9 +295,6 @@ phone: profile.phone || profile.phoneNumber || profile.ph || phone,
                 </>
               )}
 
-              {/* ══════════════════════════════
-                  STEP 2 — Verify OTP
-              ══════════════════════════════ */}
               {step === 2 && (
                 <>
                   <div>
@@ -392,15 +305,12 @@ phone: profile.phone || profile.phoneNumber || profile.ph || phone,
                       type="tel"
                       placeholder="Enter 6-digit OTP"
                       value={otpInput}
-                      onChange={(e) =>
-                        setOtpInput(e.target.value.replace(/\D/g, "").slice(0, 6))
-                      }
+                      onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, "").slice(0, 6))}
                       onKeyDown={(e) => e.key === "Enter" && handleVerifyOtp()}
                       disabled={loading}
-                      className={`w-full px-3 py-2 rounded-lg border-2 bg-white outline-none text-gray-900 text-sm font-medium tracking-widest placeholder-gray-300 transition-all disabled:opacity-60 border-gray-200 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20`}
+                      className="w-full px-3 py-2 rounded-lg border-2 bg-white outline-none text-gray-900 text-sm font-medium tracking-widest placeholder-gray-300 transition-all disabled:opacity-60 border-gray-200 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20"
                     />
                   </div>
-
                   <button
                     onClick={handleVerifyOtp}
                     disabled={loading || !otpInput}
@@ -409,7 +319,6 @@ phone: profile.phone || profile.phoneNumber || profile.ph || phone,
                     {loading && <Spinner />}
                     {loading ? "Verifying..." : "Verify & Login"}
                   </button>
-
                   <p className="text-center text-xs text-gray-400">
                     Didn't receive?{" "}
                     <button
@@ -421,18 +330,15 @@ phone: profile.phone || profile.phoneNumber || profile.ph || phone,
                   </p>
                 </>
               )}
+
             </div>
 
-            {/* Divider */}
             <div className="flex items-center gap-3 my-4">
               <div className="flex-1 h-px bg-gray-100" />
-              <span className="text-[10px] text-gray-400 font-semibold">
-                or
-              </span>
+              <span className="text-[10px] text-gray-400 font-semibold">or</span>
               <div className="flex-1 h-px bg-gray-100" />
             </div>
 
-            {/* Signup Link */}
             <p className="text-center text-xs text-gray-400">
               Don't have an account?{" "}
               <button
@@ -443,14 +349,15 @@ phone: profile.phone || profile.phoneNumber || profile.ph || phone,
               </button>
             </p>
 
-            {/* Footer */}
             <div className="mt-4 pt-3 border-t border-gray-100">
               <p className="text-[10px] text-gray-400 text-center font-semibold">
                 🔒 Enterprise-Grade Security • SSL Encrypted
               </p>
             </div>
+
           </div>
         </div>
+
       </div>
     </AuthLayout>
   );

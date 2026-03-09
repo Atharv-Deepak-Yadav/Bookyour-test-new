@@ -3,21 +3,27 @@ import Head from "next/head";
 import LoginPage       from "../components/auth/LoginPage";
 import SignupPage      from "../components/auth/SignupPage";
 import DashboardLayout from "../components/dashboard/DashboardLayout";
+
 export default function App() {
-  // Auth state
-  const [user, setUser] = useState(null);
+  const [user, setUser]         = useState(null);
   const [authPage, setAuthPage] = useState("login");
   const [defaultPage, setDefaultPage] = useState("dashboard");
-  const [loading, setLoading] = useState(true); // prevent flicker
+  const [loading, setLoading]   = useState(true);
 
   // ✅ Restore user on app load
   useEffect(() => {
     const storedUser = localStorage.getItem("user_data");
-    const token = localStorage.getItem("auth_token");
+    const token      = localStorage.getItem("auth_token");
 
     if (storedUser && token) {
-      setUser(JSON.parse(storedUser));
-      console.log("🔁 User restored from localStorage");
+      const parsed = JSON.parse(storedUser);
+      setUser(parsed);
+
+      // ✅ Restore correct defaultPage based on type
+      const type = String(parsed.type || "").trim().toLowerCase();
+      setDefaultPage(type === "inspector" ? "account" : "dashboard");
+
+      console.log("🔁 User restored from localStorage, type:", type);
     }
 
     setLoading(false);
@@ -25,15 +31,33 @@ export default function App() {
 
   const isAuthenticated = !!user;
 
-  // Called by LoginPage / SignupPage on success
-  const handleLogin = (userData) => setUser(userData);
+  // ✅ Called by LoginPage on success — route by type
+  const handleLogin = (userData) => {
+    const type = String(userData.type || "").trim().toLowerCase();
+
+    if (type === "inspector") {
+      // Inspectors land on their account page (only 2 pages available)
+      setDefaultPage("account");
+    } else {
+      // Lab users: check approval status
+      const status     = userData.approvalStatus ?? userData.status ?? false;
+      const isApproved =
+        typeof status === "string"
+          ? status.toLowerCase() === "approved"
+          : !!status;
+
+      // Approved labs → dashboard; unapproved → account (popup will show)
+      setDefaultPage(isApproved ? "dashboard" : "account");
+    }
+
+    setUser(userData);
+  };
 
   const handleSignup = (userData) => {
     setDefaultPage("account");
     setUser(userData);
   };
 
-  // Logout
   const handleLogout = () => {
     localStorage.removeItem("auth_token");
     localStorage.removeItem("user_data");
@@ -41,7 +65,6 @@ export default function App() {
     setAuthPage("login");
   };
 
-  // 🔥 Prevent UI flash before restore
   if (loading) return null;
 
   return (

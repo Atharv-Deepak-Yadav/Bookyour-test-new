@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import DashboardSidebar from "./DashboardSidebar";
 
-import HomePage from "./pages/HomePage";
-import AccountPage from "./pages/AccountPage";
+import HomePage     from "./pages/HomePage";
+import AccountPage  from "./pages/AccountPage";
 import DashboardPage from "./pages/DashboardPage";
-import AddTestPage from "./pages/AddTestPage";
+import AddTestPage  from "./pages/AddTestPage";
 import ApprovalPage from "./pages/ApprovalPage";
 import AddMemberPage from "./pages/AddMemberPage";
 
@@ -18,31 +18,26 @@ const PAGE_CONFIG = {
     subtitle: "Welcome back",
     breadcrumb: "Home",
   },
-
   account: {
     title: "My Account",
     subtitle: "Manage your profile",
     breadcrumb: "User / Account",
   },
-
   dashboard: {
     title: "Dashboard",
     subtitle: "Civil construction reports",
     breadcrumb: "Laboratory / Reports",
   },
-
   "add-test": {
     title: "Add New Test",
     subtitle: "Submit a test",
     breadcrumb: "Operations / Add Test",
   },
-
   approval: {
     title: "Report Approval",
     subtitle: "Review reports",
     breadcrumb: "Review / Approval",
   },
-
   "add-member": {
     title: "Add New Member",
     subtitle: (
@@ -62,11 +57,11 @@ const PAGE_CONFIG = {
 ----------------------------------------- */
 
 const PAGE_COMPONENTS = {
-  home: HomePage,
-  account: AccountPage,
-  dashboard: DashboardPage,
-  "add-test": AddTestPage,
-  approval: ApprovalPage,
+  home:         HomePage,
+  account:      AccountPage,
+  dashboard:    DashboardPage,
+  "add-test":   AddTestPage,
+  approval:     ApprovalPage,
   "add-member": AddMemberPage,
 };
 
@@ -76,49 +71,56 @@ const PAGE_COMPONENTS = {
 
 const DashboardLayout = ({ user, onLogout, defaultPage }) => {
 
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  const [activePage, setActivePageState] = useState(
-    defaultPage || "dashboard"
-  );
-
-  const [showPopup, setShowPopup] = useState(false);
+  const [isCollapsed, setIsCollapsed]   = useState(false);
+  const [activePage, setActivePageState] = useState(defaultPage || "dashboard");
+  const [showPopup, setShowPopup]       = useState(false);
   const [popupShownOnce, setPopupShownOnce] = useState(false);
 
   /* -----------------------------------------
-     USER APPROVAL STATUS
+     RESOLVE USER TYPE & APPROVAL STATUS
   ----------------------------------------- */
 
   const userData = JSON.parse(localStorage.getItem("user_data") || "{}");
 
-  const status = userData?.status || userData?.approvalStatus;
+  // Normalise type
+  const userType = String(
+    userData.type || userData.role || userData.userType || ""
+  ).trim().toLowerCase();
 
-  const isApproved =
-    typeof status === "string"
+  const isInspector = userType === "inspector";
+
+  // Approval status — inspectors skip this check entirely
+  const status = userData?.approvalStatus ?? userData?.status;
+  const isApproved = isInspector
+    ? true  // inspectors are always considered "approved" for navigation
+    : typeof status === "string"
       ? status.toLowerCase() === "approved"
       : !!status;
 
+  console.log("🧑‍💼 userType:", userType, "| isApproved:", isApproved);
+
   /* -----------------------------------------
-     SHOW POPUP IF UNAPPROVED
+     SHOW POPUP IF LAB USER IS UNAPPROVED
   ----------------------------------------- */
 
   useEffect(() => {
-    if (!isApproved && activePage !== "account" && !popupShownOnce) {
+    if (!isInspector && !isApproved && activePage !== "account" && !popupShownOnce) {
       setShowPopup(true);
       setPopupShownOnce(true);
     }
-  }, [activePage, isApproved, popupShownOnce]);
+  }, [activePage, isApproved, isInspector, popupShownOnce]);
 
   /* -----------------------------------------
      NAVIGATION WITH APPROVAL CHECK
+     Inspectors: free to navigate their 2 pages
+     Lab users: blocked until approved
   ----------------------------------------- */
 
   const setActivePage = (page) => {
-
-    if (!isApproved && page !== "account") {
+    if (!isInspector && !isApproved && page !== "account") {
       setShowPopup(true);
       return;
     }
-
     setActivePageState(page);
     setShowPopup(false);
   };
@@ -129,32 +131,23 @@ const DashboardLayout = ({ user, onLogout, defaultPage }) => {
   };
 
   /* -----------------------------------------
-     PAGE CONFIG
+     PAGE RENDER
   ----------------------------------------- */
 
-  const config = PAGE_CONFIG[activePage];
+  const config      = PAGE_CONFIG[activePage];
   const PageContent = PAGE_COMPONENTS[activePage];
-
   const canViewPage = isApproved || activePage === "account";
-
   const sidebarMargin = isCollapsed ? 72 : 240;
-
-  /* -----------------------------------------
-     UI
-  ----------------------------------------- */
 
   return (
     <div
       style={{
         minHeight: "100vh",
         fontFamily: "'Sora', sans-serif",
-        background:
-          "linear-gradient(150deg,#fffdf0 0%,#f9f7f0 60%,#faf5e4 100%)",
+        background: "linear-gradient(150deg,#fffdf0 0%,#f9f7f0 60%,#faf5e4 100%)",
       }}
     >
-
       {/* SIDEBAR */}
-
       <DashboardSidebar
         isCollapsed={isCollapsed}
         setIsCollapsed={setIsCollapsed}
@@ -165,7 +158,6 @@ const DashboardLayout = ({ user, onLogout, defaultPage }) => {
       />
 
       {/* MAIN CONTENT */}
-
       <main
         style={{
           marginLeft: `${sidebarMargin}px`,
@@ -175,10 +167,8 @@ const DashboardLayout = ({ user, onLogout, defaultPage }) => {
           transition: "margin-left 0.3s ease",
         }}
       >
-
-        {/* POPUP */}
-
-        {showPopup && !isApproved && (
+        {/* APPROVAL POPUP — only for unapproved lab users */}
+        {showPopup && !isApproved && !isInspector && (
           <>
             <div
               style={{
@@ -189,7 +179,6 @@ const DashboardLayout = ({ user, onLogout, defaultPage }) => {
                 zIndex: 9998,
               }}
             />
-
             <div
               style={{
                 position: "fixed",
@@ -204,27 +193,13 @@ const DashboardLayout = ({ user, onLogout, defaultPage }) => {
                 zIndex: 9999,
               }}
             >
-              <h2
-                style={{
-                  color: "#dc2626",
-                  fontSize: 18,
-                  fontWeight: 700,
-                }}
-              >
+              <h2 style={{ color: "#dc2626", fontSize: 18, fontWeight: 700 }}>
                 Instruction
               </h2>
-
-              <p
-                style={{
-                  fontSize: 14,
-                  marginTop: 10,
-                  color: "#666",
-                }}
-              >
+              <p style={{ fontSize: 14, marginTop: 10, color: "#666" }}>
                 This page can't be accessed because your document
                 has not been approved yet.
               </p>
-
               <button
                 onClick={handlePopupOK}
                 style={{
@@ -243,12 +218,10 @@ const DashboardLayout = ({ user, onLogout, defaultPage }) => {
           </>
         )}
 
-        {/* CONTENT */}
-
+        {/* PAGE CONTENT */}
         {canViewPage && (
           <>
             {/* HEADER */}
-
             <header
               style={{
                 padding: "28px 32px 22px",
@@ -257,74 +230,74 @@ const DashboardLayout = ({ user, onLogout, defaultPage }) => {
                 justifyContent: "space-between",
               }}
             >
-
               <div>
-
-                <h1
-                  style={{
-                    fontSize: 22,
-                    fontWeight: 900,
-                    margin: 0,
-                  }}
-                >
+                <h1 style={{ fontSize: 22, fontWeight: 900, margin: 0 }}>
                   {config.title}
                 </h1>
-
-                <p
-                  style={{
-                    fontSize: 12,
-                    marginTop: 4,
-                  }}
-                >
+                <p style={{ fontSize: 12, marginTop: 4 }}>
                   {config.subtitle}
                 </p>
-
               </div>
 
               <div>
-
                 {user?.name && (
-                  <div
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 700,
-                    }}
-                  >
+                  <div style={{ fontSize: 12, fontWeight: 700 }}>
                     👋 {user.name}
+                    {/* ✅ Show user type badge */}
+                    <span
+                      style={{
+                        marginLeft: 8,
+                        padding: "2px 8px",
+                        borderRadius: 99,
+                        fontSize: 10,
+                        fontWeight: 700,
+                        textTransform: "uppercase",
+                        background: isInspector ? "#dbeafe" : "#fef9c3",
+                        color: isInspector ? "#1d4ed8" : "#92400e",
+                        border: isInspector ? "1px solid #93c5fd" : "1px solid #fde68a",
+                      }}
+                    >
+                      {isInspector ? "🔍 Inspector" : "🧪 Lab"}
+                    </span>
+
+                    {/* ✅ Show approval status badge for lab users */}
+                    {!isInspector && (
+                      <span
+                        style={{
+                          marginLeft: 6,
+                          padding: "2px 8px",
+                          borderRadius: 99,
+                          fontSize: 10,
+                          fontWeight: 700,
+                          textTransform: "uppercase",
+                          background: isApproved ? "#dcfce7" : "#fee2e2",
+                          color: isApproved ? "#166534" : "#991b1b",
+                          border: isApproved ? "1px solid #86efac" : "1px solid #fca5a5",
+                        }}
+                      >
+                        {isApproved ? "✓ Approved" : "⏳ Pending"}
+                      </span>
+                    )}
                   </div>
                 )}
 
-                <div
-                  style={{
-                    fontSize: 12,
-                    marginTop: 6,
-                  }}
-                >
+                <div style={{ fontSize: 12, marginTop: 6 }}>
                   {new Date().toLocaleDateString("en-IN", {
                     day: "numeric",
                     month: "long",
                     year: "numeric",
                   })}
                 </div>
-
               </div>
             </header>
 
             {/* PAGE */}
-
-            <div
-              style={{
-                padding: "24px 32px",
-                flex: 1,
-              }}
-            >
+            <div style={{ padding: "24px 32px", flex: 1 }}>
               <PageContent user={user} />
             </div>
           </>
         )}
-
       </main>
-
     </div>
   );
 };

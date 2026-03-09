@@ -12,14 +12,14 @@ import {
   Upload, Save, ChevronDown, AlertCircle, BadgeCheck, Edit2, X, Check, Loader, Download, Eye
 } from "lucide-react";
 
-const AccountPage = () => {
+const AccountPage = ({ user }) => {
    const userData =
     typeof window !== "undefined"
       ? JSON.parse(localStorage.getItem("user_data") || "{}")
       : {};
-  const [labData, setLabData] = useState({
-    name: "",
-    lastName: "",
+ const [labData, setLabData] = useState({
+  name: userData?.name || "",  // ✅ Uses actual value
+  lastName: userData?.lastName || "",
     labName: "",
     labEmail: "",
     labDistrict: "",
@@ -67,11 +67,19 @@ const [talukaOptions, setTalukaOptions] = useState([]);
       try {
         const parsedUser = JSON.parse(userData);
         console.log("📦 Loading user data from localStorage:", parsedUser);
-
-        setLabData((prev) => ({
-          ...prev,
-          name: parsedUser.name || parsedUser.first_name || "",
-          lastName: parsedUser.lastName || parsedUser.last_name || "",
+setLabData((prev) => ({
+  ...prev,
+  name:
+    parsedUser?.name ||
+    parsedUser?.firstName ||
+    parsedUser?.first_name ||
+    parsedUser?.email?.split("@")[0] ||
+    "",
+  lastName:
+    parsedUser?.lastName ||
+    parsedUser?.last_name ||
+    parsedUser?.surname ||
+    "",
         labName:
   parsedUser.labName &&
   parsedUser.labName.toLowerCase() !== "lab"
@@ -947,8 +955,8 @@ const downloadLabPDF = () => {
               <User size={32} color="#9ca3af" />
             </div>
             <div style={{ flex: 1 }}>
-             <h2 style={{ fontSize: 16, fontWeight: 900, color: "#111827", margin: 0 }}>
-Welcome, {userData?.name && userData.name !== "Inspector" ? userData.name : "User"}
+      <h2 style={{ fontSize: 16, fontWeight: 900, color: "#111827", margin: 0 }}>
+Welcome, {labData.name || "User"}
 </h2>
             </div>
           </div>
