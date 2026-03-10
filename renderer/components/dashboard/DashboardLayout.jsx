@@ -91,11 +91,11 @@ const DashboardLayout = ({ user, onLogout, defaultPage }) => {
 
   // Approval status — inspectors skip this check entirely
   const status = userData?.approvalStatus ?? userData?.status;
-  const isApproved = isInspector
-    ? true  // inspectors are always considered "approved" for navigation
-    : typeof status === "string"
-      ? status.toLowerCase() === "approved"
-      : !!status;
+const isApproved = isInspector
+  ? true
+  : status === true || status === "true" || status === "approved" || status === "Approved"
+    ? true
+    : false;  // ✅ Explicitly handles boolean true
 
   console.log("🧑‍💼 userType:", userType, "| isApproved:", isApproved);
 

@@ -119,24 +119,21 @@ const LoginPage = ({ onLogin, onGoToSignup }) => {
         resolvedProfile.userType ||
         "inspector"
       ).trim().toLowerCase();
-
-      const userObj = {
-        _id:    resolvedProfile._id   || resolvedProfile.id || phone,
-        id:     resolvedProfile._id   || resolvedProfile.id || phone,
-        phone:  resolvedProfile.phone || resolvedProfile.phoneNumber || resolvedProfile.ph || phone,
-name:
-  resolvedProfile.name ||
-  resolvedProfile.firstName ||
-  resolvedProfile.first_name ||
-  resolvedProfile.username ||
-  resolvedProfile.userName ||
-  "",
-
-lastName:
-  resolvedProfile.lastName ||
-  resolvedProfile.last_name ||
-  resolvedProfile.surname ||
-  "",
+const userObj = {
+  _id:    resolvedProfile._id   || resolvedProfile.id || phone,
+  id:     resolvedProfile._id   || resolvedProfile.id || phone,
+  phone:  resolvedProfile.phone || resolvedProfile.phoneNumber || resolvedProfile.ph || phone,
+  username: resolvedProfile.username || "",  // ← YOU ADDED THIS
+  name:
+    resolvedProfile.name ||
+    resolvedProfile.firstName ||
+    resolvedProfile.first_name ||
+    "",
+  lastName:
+    resolvedProfile.lastName ||
+    resolvedProfile.last_name ||
+    resolvedProfile.surname ||
+    "",
         email:      resolvedProfile.email     || "",
         labName:    resolvedProfile.labName   || "",
         type:       finalType,

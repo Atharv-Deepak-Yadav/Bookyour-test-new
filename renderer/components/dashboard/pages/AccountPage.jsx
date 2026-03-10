@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import jsPDF from "jspdf";
 import { fetchDistrictTaluka } from "../../../services/api";
+import { uploadReport } from "../../../services/api";
 
 import {
   SignupSendOtp,
@@ -17,9 +18,9 @@ const AccountPage = ({ user }) => {
     typeof window !== "undefined"
       ? JSON.parse(localStorage.getItem("user_data") || "{}")
       : {};
- const [labData, setLabData] = useState({
-  name: userData?.name || "",  // ✅ Uses actual value
-  lastName: userData?.lastName || "",
+const [labData, setLabData] = useState({
+  name: "",  // ← Start empty
+  lastName: "",
     labName: "",
     labEmail: "",
     labDistrict: "",
@@ -61,56 +62,92 @@ const [talukaOptions, setTalukaOptions] = useState([]);
 
   // ========== API INTEGRATION: LOAD ALL DATA FROM LOCALSTORAGE ==========
   useEffect(() => {
-    const userData = localStorage.getItem("user_data");
-    
-    if (userData) {
-      try {
-        const parsedUser = JSON.parse(userData);
-        console.log("📦 Loading user data from localStorage:", parsedUser);
-setLabData((prev) => ({
-  ...prev,
-  name:
-    parsedUser?.name ||
-    parsedUser?.firstName ||
-    parsedUser?.first_name ||
-    parsedUser?.email?.split("@")[0] ||
-    "",
-  lastName:
-    parsedUser?.lastName ||
-    parsedUser?.last_name ||
-    parsedUser?.surname ||
-    "",
-        labName:
-  parsedUser.labName &&
-  parsedUser.labName.toLowerCase() !== "lab"
-    ? parsedUser.labName
-    : parsedUser.parentLabName ||
-      parsedUser.laboratory_name ||
-      parsedUser.lab_name ||
-      "",
-          labEmail: parsedUser.email || parsedUser.labEmail || parsedUser.email_id || "",
-          labPhone: parsedUser.phone || parsedUser.ph || parsedUser.labPhone || parsedUser.phoneNumber || "",
-          labAddress: parsedUser.address || parsedUser.addr || parsedUser.labAddress || "",
-          labCity: parsedUser.city || parsedUser.city_name || parsedUser.labCity || "",
-          labDistrict: parsedUser.district || parsedUser.dist || parsedUser.labDistrict || "",
-          labTaluka: parsedUser.taluka || parsedUser.tahsil || parsedUser.labTaluka || "",
-          bankName: parsedUser.bankName || parsedUser.bank_name || "",
-          ifscCode: parsedUser.ifscCode || parsedUser.ifsc_code || "",
-          accountNumber: parsedUser.accountNumber || parsedUser.account_number || "",
-          branchName: parsedUser.branchName || parsedUser.branch_name || "",
-          gstNumber: parsedUser.gstNumber || parsedUser.gst_number || "",
-          applyGST: parsedUser.applyGst || parsedUser.applyGST || parsedUser.apply_gst || "No",
-        }));
+  const userData = localStorage.getItem("user_data");
+  
+  if (userData) {
+    try {
+      const parsedUser = JSON.parse(userData);
+      console.log("📦 Loading user data from localStorage:", parsedUser);
+let extractedName = 
+  parsedUser?.name ||
+  parsedUser?.firstName ||
+  parsedUser?.first_name ||
+  "";
 
-        console.log("✅ User data loaded successfully");
-      } catch (e) {
-        console.error("❌ Error parsing user data:", e);
-      }
-    } else {
-      console.warn("⚠️ No user_data found in localStorage");
+let extractedLastName = 
+  parsedUser?.lastName ||
+  parsedUser?.last_name ||
+  parsedUser?.surname ||
+  "";
+
+// If name missing, extract from EMAIL: "atharvayadav1135@gmail.com" → "atharva"
+// Extract from EMAIL: "atharvayadav1135" → "atharva" + "yadav"
+if (!extractedName && parsedUser?.email) {
+  const emailPart = parsedUser.email.split("@")[0].replace(/\d+$/, ""); // Remove numbers: "atharvayadav"
+  
+  // Simple approach: first 7 chars is usually the first name
+  if (emailPart.length >= 7) {
+    extractedName = emailPart.substring(0, 7); // "atharva"
+    extractedLastName = emailPart.substring(7); // "yadav"
+  } else {
+    extractedName = emailPart;
+  }
+}
+
+      setLabData((prev) => ({
+        ...prev,
+        name: extractedName,
+        lastName: extractedLastName,
+        labName: parsedUser.labName && parsedUser.labName.toLowerCase() !== "lab"
+          ? parsedUser.labName
+          : parsedUser.parentLabName || parsedUser.laboratory_name || parsedUser.lab_name || "",
+        labEmail: parsedUser.email || parsedUser.labEmail || parsedUser.email_id || "",
+        labPhone: parsedUser.phone || parsedUser.ph || parsedUser.labPhone || parsedUser.phoneNumber || "",
+        labAddress: parsedUser.address || parsedUser.addr || parsedUser.labAddress || "",
+        labCity: parsedUser.city || parsedUser.city_name || parsedUser.labCity || "",
+        labDistrict: parsedUser.district || parsedUser.dist || parsedUser.labDistrict || "",
+        labTaluka: parsedUser.taluka || parsedUser.tahsil || parsedUser.labTaluka || "",
+        bankName: parsedUser.bankName || parsedUser.bank_name || "",
+        ifscCode: parsedUser.ifscCode || parsedUser.ifsc_code || "",
+        accountNumber: parsedUser.accountNumber || parsedUser.account_number || "",
+        branchName: parsedUser.branchName || parsedUser.branch_name || "",
+        gstNumber: parsedUser.gstNumber || parsedUser.gst_number || "",
+        applyGST: parsedUser.applyGst || parsedUser.applyGST || parsedUser.apply_gst || "No",
+      registrationDoc: parsedUser?.registractionNabl || null,
+labApprovalDoc: parsedUser?.approvalCertificate || null,
+gstCertificateDoc: parsedUser?.gstCertificate || null,
+isoCertificateDoc: parsedUser?.isoCertificate || null,
+cancelChequePic: parsedUser?.chequePhoto || null,
+
+labApprovalDoc:
+  parsedUser?.approvalCertificate?.startsWith("wix:")
+    ? null
+    : parsedUser?.approvalCertificate || null,
+
+gstCertificateDoc:
+  parsedUser?.gstCertificate?.startsWith("wix:")
+    ? null
+    : parsedUser?.gstCertificate || null,
+
+isoCertificateDoc:
+  parsedUser?.isoCertificate?.startsWith("wix:")
+    ? null
+    : parsedUser?.isoCertificate || null,
+
+cancelChequePic:
+  parsedUser?.chequePhoto?.startsWith("wix:")
+    ? null
+    : parsedUser?.chequePhoto || null,
+      }));
+
+      console.log("✅ User data loaded successfully");
+    } catch (e) {
+      console.error("❌ Error parsing user data:", e);
     }
-  }, []);
-useEffect(() => {
+  } else {
+    console.warn("⚠️ No user_data found in localStorage");
+  }
+}, []);useEffect(() => {
   const loadDistrictData = async () => {
     try {
       const data = await fetchDistrictTaluka();
@@ -141,8 +178,8 @@ useEffect(() => {
 }, []);useEffect(() => {
   if (!labData.labDistrict || districtData.length === 0) return;
 
-  const filteredTalukas = districtData
-  .filter(item => item.district?.trim() === labData.labDistrict)
+const filteredTalukas = districtData
+  .filter(item => item.district1?.trim() === labData.labDistrict)
   .map(item => item.taluka?.trim())
   .filter(Boolean);
 
@@ -155,7 +192,10 @@ useEffect(() => {
   const { name, value, type, files } = e.target;
 
   if (type === "file") {
-    setLabData({ ...labData, [name]: files[0] || null });
+    setLabData(prev => ({
+  ...prev,
+  [name]: files[0] || null
+}));
     return;
   }
 
@@ -163,7 +203,7 @@ useEffect(() => {
   if (name === "labDistrict") {
 
 const filteredTalukas = districtData
-  .filter(item => item.district?.trim() === value)
+  .filter(item => item.district1?.trim() === value)
   .map(item => item.taluka?.trim())
   .filter(Boolean);
 
@@ -180,7 +220,10 @@ const filteredTalukas = districtData
     return;
   }
 
-  setLabData({ ...labData, [name]: value });
+ setLabData(prev => ({
+  ...prev,
+  [name]: value
+}));
 };
 
   const handleDrag = (e, field) => {
@@ -198,7 +241,10 @@ const filteredTalukas = districtData
   e.stopPropagation();
   setDragActive({ ...dragActive, [field]: false });
   if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-    setLabData({ ...labData, [field]: e.dataTransfer.files[0] });
+  setLabData(prev => ({
+  ...prev,
+  [field]: e.dataTransfer.files[0]
+}));
   }
 };
 
@@ -341,39 +387,7 @@ if (!userId) {
   };
 
   // ========== FILE UPLOAD HELPER ==========
-  const uploadFile = async (file) => {
-    if (!file) return null;
-
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const authToken = localStorage.getItem("auth_token");
-
-      const response = await fetch(
-        "https://www.bookurtest.com/_functions/uploadReport",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${authToken}`,
-          },
-          body: formData,
-        }
-      );
-
-      const data = await response.json();
-      console.log("✅ File uploaded:", data);
-
-      if (!response.ok || !data.fileUrl) {
-        throw new Error(data.message || "File upload failed");
-      }
-
-      return data.fileUrl;
-    } catch (error) {
-      console.error("❌ File upload error:", error);
-      throw error;
-    }
-  };
+  
 
   // ========== API INTEGRATION: SAVE DATA WITH FILE UPLOADS ==========
  const handleSubmit = async () => {
@@ -406,35 +420,37 @@ if (!authToken || !finalUserId) {
       console.log("📤 Starting profile update...");
 
       // ========== UPLOAD FILES ==========
-      let registrationDocUrl = null;
-      let labApprovalDocUrl = null;
-      let gstCertificateDocUrl = null;
-      let isoCertificateDocUrl = null;
-      let cancelChequePicUrl = null;
+      // ========== UPLOAD FILES ==========
+let registrationDocUrl = null;
+let labApprovalDocUrl = null;
+let gstCertificateDocUrl = null;
+let isoCertificateDocUrl = null;
+let cancelChequePicUrl = null;
 
-      if (labData.registrationDoc instanceof File) {
-  registrationDocUrl = await uploadFile(labData.registrationDoc);
+if (labData.registrationDoc instanceof File) {
+  const res = await uploadReport(labData.registrationDoc);
+  registrationDocUrl = res.publicUrl;
 }
 
-      if (labData.labApprovalDoc) {
-        console.log("📤 Uploading Lab Approval Doc...");
-        labApprovalDocUrl = await uploadFile(labData.labApprovalDoc);
-      }
+if (labData.labApprovalDoc instanceof File) {
+  const res = await uploadReport(labData.labApprovalDoc);
+  labApprovalDocUrl = res.publicUrl;
+}
 
-      if (labData.gstCertificateDoc) {
-        console.log("📤 Uploading GST Certificate...");
-        gstCertificateDocUrl = await uploadFile(labData.gstCertificateDoc);
-      }
+if (labData.gstCertificateDoc instanceof File) {
+  const res = await uploadReport(labData.gstCertificateDoc);
+  gstCertificateDocUrl = res.publicUrl;
+}
 
-      if (labData.isoCertificateDoc) {
-        console.log("📤 Uploading ISO Certificate...");
-        isoCertificateDocUrl = await uploadFile(labData.isoCertificateDoc);
-      }
+if (labData.isoCertificateDoc instanceof File) {
+  const res = await uploadReport(labData.isoCertificateDoc);
+  isoCertificateDocUrl = res.publicUrl;
+}
 
-      if (labData.cancelChequePic) {
-        console.log("📤 Uploading Cancel Cheque...");
-        cancelChequePicUrl = await uploadFile(labData.cancelChequePic);
-      }
+if (labData.cancelChequePic instanceof File) {
+  const res = await uploadReport(labData.cancelChequePic);
+  cancelChequePicUrl = res.publicUrl;
+}
 
       // ========== PREPARE PAYLOAD ==========
       const payload = {
@@ -510,6 +526,11 @@ console.log("✅ API Response:", result);
         branchName: labData.branchName,
         gstNumber: labData.gstNumber,
         applyGst: labData.applyGST,
+        registractionNabl: registrationDocUrl || userData?.registractionNabl,
+  approvalCertificate: labApprovalDocUrl || userData?.approvalCertificate,
+  gstCertificate: gstCertificateDocUrl || userData?.gstCertificate,
+  isoCertificate: isoCertificateDocUrl || userData?.isoCertificate,
+  chequePhoto: cancelChequePicUrl || userData?.chequePhoto
       };
 
       localStorage.setItem("user_data", JSON.stringify(updatedUserData));
@@ -529,18 +550,22 @@ console.log("✅ API Response:", result);
 const viewDocument = (file) => {
   if (!file) return;
 
-  const url = URL.createObjectURL(file);
-  window.open(url, "_blank");
+  if (typeof file === "string") {
+    window.open(file, "_blank");
+  } else {
+    const url = URL.createObjectURL(file);
+    window.open(url, "_blank");
+  }
 };
-
 // ===== DOWNLOAD DOCUMENT =====
 const downloadDocument = (file) => {
   if (!file) return;
 
-  const url = URL.createObjectURL(file);
+  const url = typeof file === "string" ? file : URL.createObjectURL(file);
+
   const a = document.createElement("a");
   a.href = url;
-  a.download = file.name;
+  a.download = "document";
   a.click();
 };
   const downloadProfilePDF = () => {
@@ -1325,7 +1350,9 @@ className="w-full premium-input"
     }}
   >
     <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-      📄 {labData[doc.name].name}
+    📄 {typeof labData[doc.name] === "string"
+? labData[doc.name].split("/").pop()
+: labData[doc.name]?.name}
     </span>
 
     <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
@@ -1452,7 +1479,9 @@ className="w-full premium-input"
     }}
   >
     <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-      📄 {labData.cancelChequePic.name}
+      📄 {typeof labData.cancelChequePic === "string"
+  ? "Uploaded Document"
+  : labData.cancelChequePic.name}
     </span>
 
     <div style={{ display: "flex", gap: "12px" }}>

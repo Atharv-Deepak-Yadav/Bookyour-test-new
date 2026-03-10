@@ -1,10 +1,10 @@
- import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Check, Mail } from "lucide-react";
 import { emailVerification, emailVerifyOtp, SignupSendOtp } from "../../../services/api";
 import { registrationPhoneVerify } from "../../../services/api";
 import { checkLabMemberLimit } from "../../../services/api";
 
-const AddMemberPage = () => {
+const AddMemberPage = () =>{
   const [form, setForm] = useState({
     name: "",
     lastName: "",
@@ -21,29 +21,22 @@ const AddMemberPage = () => {
 const [checkingMember, setCheckingMember] = useState(true);
 useEffect(() => {
 
-  const checkMember = async () => {
+  const checkMember = async ()=>{
 
     try {
-
       const res = await checkLabMemberLimit();
-
       console.log("API response:", res);
-
       // 🔴 backend logic
       if (res?.allowed === false) {
         setMemberExists(true);
       }
-
-    } catch (err) {
+} catch (err) {
       console.error(err);
     } finally {
       setCheckingMember(false);
     }
-
   };
-
-  checkMember();
-
+      checkMember();
 }, []);
 
   const handleChange = (e) => {
@@ -52,7 +45,6 @@ useEffect(() => {
 
 const handleSendEmailOtp = async (e) => {
   e.preventDefault();
-
   if (!form.name.trim() || !form.lastName.trim() || !form.email.trim()) {
     alert("Please fill all fields");
     return;
@@ -147,56 +139,40 @@ if (memberExists) {
   );
 }
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 32, padding: "20px" }}>
+  
+<div
+  className="min-h-screen"
+  style={{
+    backgroundColor: "#ffffff",
+    paddingTop: 0,
+    paddingBottom: 24,
+    paddingLeft: 0,
+    paddingRight: 24
+  }}
+>
+
+<div
+  style={{
+    display: "grid",
+    gridTemplateColumns: "1fr 320px",
+    gap: 32,
+    padding: "20px"
+  }}
+>
+  
       {/* MAIN FORM */}
       <div>
         {/* HEADER */}
         <div style={{ marginBottom: 32 }}>
-          <h2 style={{ fontSize: 26, fontWeight: 900, color: "#111827", margin: "0 0 6px" }}>Member Onboarding</h2>
+         <h2 style={{ fontSize:24, fontWeight:800, marginBottom:4 }}>Member Onboarding</h2>
           <p style={{ fontSize: 13, color: "#6b7280", margin: 0, fontWeight: 500 }}>Complete all verification steps to activate the account</p>
         </div>
 
-        {/* PROGRESS TRACKER */}
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 40, gap: 12 }}>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1 }}>
-            <div style={{ width: 48, height: 48, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, fontSize: 14, background: "#f59e0b", color: "#fff", marginBottom: 8 }}>1</div>
-            <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", margin: 0, textAlign: "center" }}>Identity</p>
-          </div>
-          <div style={{ flex: 1, display: "flex", alignItems: "center", marginTop: 24 }}>
-            <div style={{ flex: 1, height: 2, background: emailOtpSent ? "#f59e0b" : "#e5e7eb" }}></div>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1 }}>
-            <div style={{ width: 48, height: 48, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, fontSize: 14, background: emailOtpSent ? "#f59e0b" : "#e5e7eb", color: emailOtpSent ? "#fff" : "#9ca3af", marginBottom: 8 }}>2</div>
-            <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", margin: 0, textAlign: "center" }}>Email Verification</p>
-          </div>
-          <div style={{ flex: 1, display: "flex", alignItems: "center", marginTop: 24 }}>
-            <div style={{ flex: 1, height: 2, background: emailOtpVerified ? "#f59e0b" : "#e5e7eb" }}></div>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1 }}>
-            <div style={{ width: 48, height: 48, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, fontSize: 14, background: emailOtpVerified ? "#f59e0b" : "#e5e7eb", color: emailOtpVerified ? "#fff" : "#9ca3af", marginBottom: 8 }}>3</div>
-            <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", margin: 0, textAlign: "center" }}>Phone Verification</p>
-          </div>
-          <div style={{ flex: 1, display: "flex", alignItems: "center", marginTop: 24 }}>
-            <div style={{ flex: 1, height: 2, background: phoneOtpVerified ? "#f59e0b" : "#e5e7eb" }}></div>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1 }}>
-            <div style={{ width: 48, height: 48, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, fontSize: 14, background: phoneOtpVerified ? "#16a34a" : "#e5e7eb", color: phoneOtpVerified ? "#fff" : "#9ca3af", marginBottom: 8 }}>
-              {phoneOtpVerified ? <Check size={20} /> : "4"}
-            </div>
-            <p style={{ fontSize: 12, fontWeight: 600, color: "#374151", margin: 0, textAlign: "center" }}>Activation</p>
-          </div>
-        </div>
+        
 
         {/* INTEGRATED IDENTITY & EMAIL VERIFICATION CONTAINER */}
-        <div style={{
-          background: emailOtpSent && !emailOtpVerified ? "#eff6ff" : "#fff",
-          borderRadius: 20,
-          border: emailOtpSent && !emailOtpVerified ? "2px solid #dbeafe" : "1.5px solid #e5e7eb",
-          padding: "32px",
-          marginBottom: 24,
-          boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
-          transition: "all 0.3s ease"
-        }}>
+     <div className="card" style={{ padding:28, marginBottom:24 }}>
+
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 28 }}>
             <div style={{ width: 40, height: 40, borderRadius: 10, background: "#f59e0b", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 18, fontWeight: 900 }}>
               {emailOtpSent && !emailOtpVerified ? "2" : "1"}
@@ -211,19 +187,41 @@ if (memberExists) {
             <>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 20 }}>
                 <div>
-                  <label style={{ fontSize: 13, fontWeight: 700, color: "#374151", display: "block", marginBottom: 10 }}>name</label>
-                  <input name="name" type="text" value={form.name} onChange={handleChange} disabled={emailOtpVerified} style={{ width: "100%", padding: "12px 16px", border: "2px solid #dbeafe", borderRadius: 12, fontSize: 14, fontWeight: 500, outline: "none", background: "#eff6ff", boxSizing: "border-box" }} />
+                 <label className="section-label">name</label>
+                 <input
+  name="name"
+  type="text"
+  value={form.name}
+  onChange={handleChange}
+  disabled={emailOtpVerified}
+  className="premium-input"
+/>
                 </div>
                 <div>
                   <label style={{ fontSize: 13, fontWeight: 700, color: "#374151", display: "block", marginBottom: 10 }}>Last Name</label>
-                  <input name="lastName" type="text" value={form.lastName} onChange={handleChange} disabled={emailOtpVerified} style={{ width: "100%", padding: "12px 16px", border: "2px solid #dbeafe", borderRadius: 12, fontSize: 14, fontWeight: 500, outline: "none", background: "#eff6ff", boxSizing: "border-box" }} />
+                  <input
+  name="lastName"
+  type="text"
+  value={form.lastName}
+  onChange={handleChange}
+  disabled={emailOtpVerified}
+  className="premium-input"
+/>
                 </div>
               </div>
               <div style={{ marginBottom: 24 }}>
                 <label style={{ fontSize: 13, fontWeight: 700, color: "#374151", display: "block", marginBottom: 10 }}>Email Address</label>
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                   <Mail size={20} color="#9ca3af" />
-                  <input name="email" type="email" value={form.email} onChange={handleChange} disabled={emailOtpVerified} style={{ flex: 1, padding: "12px 16px", border: "2px solid #dbeafe", borderRadius: 12, fontSize: 14, fontWeight: 500, outline: "none", background: "#eff6ff", boxSizing: "border-box" }} />
+                  <input
+  name="email"
+  type="email"
+  value={form.email}
+  onChange={handleChange}
+  disabled={emailOtpVerified}
+  className="premium-input"
+  style={{ flex: 1 }}
+/>
                 </div>
               </div>
               {!emailOtpVerified && (
@@ -278,17 +276,27 @@ if (memberExists) {
             </div>
           )}
         </div>
-
         {/* STEP 3: PHONE VERIFICATION (Only shows after email is verified) */}
         {emailOtpVerified && (
-          <div style={{ background: "#fff", borderRadius: 20, border: "1.5px solid #e5e7eb", padding: "32px", boxShadow: "0 2px 8px rgba(0,0,0,0.03)" }}>
+       <div
+className="bg-white rounded-xl shadow-lg border border-gray-200"
+style={{ padding: "32px" }}
+>
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 28 }}>
               <div style={{ width: 40, height: 40, borderRadius: 10, background: "#f59e0b", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 18, fontWeight: 900 }}>3</div>
               <h3 style={{ fontSize: 18, fontWeight: 900, color: "#111827", margin: 0 }}>Phone Verification</h3>
             </div>
             <div style={{ marginBottom: 24 }}>
               <label style={{ fontSize: 13, fontWeight: 700, color: "#374151", display: "block", marginBottom: 10 }}>Phone Number</label>
-              <input name="phone" type="tel" placeholder="9876543210" value={form.phone} onChange={handleChange} disabled={phoneOtpSent} style={{ width: "100%", padding: "12px 16px", border: "2px solid #fef3c7", borderRadius: 12, fontSize: 14, fontWeight: 500, background: "#fffbeb", boxSizing: "border-box" }} />
+            <input
+  name="phone"
+  type="tel"
+  placeholder="9876543210"
+  value={form.phone}
+  onChange={handleChange}
+  disabled={phoneOtpSent}
+  className="premium-input"
+/>
             </div>
             {!phoneOtpSent ? (
               <button onClick={handleSendPhoneOtp} style={{ padding: "12px 24px", background: "#111827", color: "#fff", border: "none", borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Send OTP</button>
@@ -326,7 +334,7 @@ if (memberExists) {
 
       {/* RIGHT SIDEBAR (Kept identical as per instructions) */}
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        <div style={{ background: "#fff", borderRadius: 16, border: "1.5px solid #e5e7eb", padding: "20px" }}>
+   <div className="bg-white rounded-xl shadow-lg border border-gray-200" style={{ padding: "20px" }}>
           <h3 style={{ fontSize: 14, fontWeight: 900, color: "#111827", margin: "0 0 16px" }}>Security Overview</h3>
           {[{ icon: "🔐", title: "Encrypted Verification", desc: "End-to-end security" }, { icon: "📧", title: "Email Authentication", desc: "Code-based verification" }, { icon: "📱", title: "Mobile OTP Confirmation", desc: "SMS authentication" }, { icon: "📋", title: "Compliance Protected", desc: "HIPAA compliant" }].map((item, idx) => (
             <div key={idx} style={{ display: "flex", gap: 10, marginBottom: idx < 3 ? 14 : 0 }}>
@@ -338,7 +346,7 @@ if (memberExists) {
             </div>
           ))}
         </div>
-        <div style={{ background: "#fff", borderRadius: 16, border: "1.5px solid #e5e7eb", padding: "20px" }}>
+    <div className="bg-white rounded-xl shadow-lg border border-gray-200" style={{ padding: "20px" }}>
           <h3 style={{ fontSize: 14, fontWeight: 900, color: "#111827", margin: "0 0 16px" }}>Onboarding Status</h3>
           {[{ label: "Details Submitted", done: form.name && form.lastName && form.email }, { label: "Email Verified", done: emailOtpVerified }, { label: "Phone Verified", done: phoneOtpVerified }, { label: "Account Activated", done: phoneOtpVerified }].map((item, idx) => (
             <div key={idx} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: idx < 3 ? 12 : 0 }}>
@@ -348,8 +356,12 @@ if (memberExists) {
           ))}
         </div>
       </div>
+               </div>
+
     </div>
+
+
   );
 };
 
-export default AddMemberPage;    
+export default AddMemberPage;
