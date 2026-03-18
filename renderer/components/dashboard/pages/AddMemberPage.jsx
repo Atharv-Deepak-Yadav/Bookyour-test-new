@@ -19,7 +19,7 @@ const handleMemberEdit = (e) => {
     name: "",
     lastName: "",
     email: "",
-    emailOtp: "",
+     emailOtp:"",
     phone: "",
     phoneOtp: "",
   });
@@ -326,214 +326,243 @@ if (memberExists) {
           </div>
         </div>
 
-        {/* INTEGRATED IDENTITY & EMAIL VERIFICATION CONTAINER */}
-        <div style={{
-          background: emailOtpSent && !emailOtpVerified ? "#eff6ff" : "#fff",
-          borderRadius: 20,
-          border: emailOtpSent && !emailOtpVerified ? "2px solid #dbeafe" : "1.5px solid #e5e7eb",
-          padding: "32px",
-          marginBottom: 24,
-          boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
-          transition: "all 0.3s ease"
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 28 }}>
-            <div style={{ width: 40, height: 40, borderRadius: 10, background: "#f59e0b", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 18, fontWeight: 900 }}>
-              {emailOtpSent && !emailOtpVerified ? "2" : "1"}
+        {/* EMAIL CONTAINER - HIDDEN AFTER VERIFICATION */}
+        {!emailOtpVerified && (
+          <div style={{
+            background: emailOtpSent && !emailOtpVerified ? "#eff6ff" : "#fff",
+            borderRadius: 20,
+            border: emailOtpSent && !emailOtpVerified ? "2px solid #dbeafe" : "1.5px solid #e5e7eb",
+            padding: "32px",
+            marginBottom: 24,
+            boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
+            transition: "all 0.3s ease"
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 28 }}>
+              <div style={{ width: 40, height: 40, borderRadius: 10, background: "#f59e0b", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 18, fontWeight: 900 }}>
+                {emailOtpSent && !emailOtpVerified ? "2" : "1"}
+              </div>
+              <h3 style={{ fontSize: 18, fontWeight: 900, color: "#111827", margin: 0 }}>
+                {emailOtpSent && !emailOtpVerified ? "Verify Your Email" : "Identity Information"}
+              </h3>
             </div>
-            <h3 style={{ fontSize: 18, fontWeight: 900, color: "#111827", margin: 0 }}>
-              {emailOtpSent && !emailOtpVerified ? "Verify Your Email" : "Identity Information"}
-            </h3>
-          </div>
 
-          {!emailOtpSent ? (
-            /* PHASE 1: DETAILS INPUT */
-            <>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 20 }}>
-                <div>
-                  <label style={{ fontSize: 13, fontWeight: 700, color: "#374151", display: "block", marginBottom: 10 }}>name</label>
-                  <input name="name" type="text" value={form.name} onChange={handleChange} disabled={emailOtpVerified} style={{ width: "100%", padding: "12px 16px", border: "2px solid #dbeafe", borderRadius: 12, fontSize: 14, fontWeight: 500, outline: "none", background: "#eff6ff", boxSizing: "border-box" }} />
+            {!emailOtpSent ? (
+              /* PHASE 1: DETAILS INPUT */
+              <>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 20 }}>
+                  <div>
+                    <label style={{ fontSize: 13, fontWeight: 700, color: "#374151", display: "block", marginBottom: 10 }}>name</label>
+                    <input name="name" type="text" value={form.name} onChange={handleChange} style={{ width: "100%", padding: "12px 16px", border: "2px solid #dbeafe", borderRadius: 12, fontSize: 14, fontWeight: 500, outline: "none", background: "#eff6ff", boxSizing: "border-box" }} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 13, fontWeight: 700, color: "#374151", display: "block", marginBottom: 10 }}>Last Name</label>
+                    <input name="lastName" type="text" value={form.lastName} onChange={handleChange} style={{ width: "100%", padding: "12px 16px", border: "2px solid #dbeafe", borderRadius: 12, fontSize: 14, fontWeight: 500, outline: "none", background: "#eff6ff", boxSizing: "border-box" }} />
+                  </div>
                 </div>
-                <div>
-                  <label style={{ fontSize: 13, fontWeight: 700, color: "#374151", display: "block", marginBottom: 10 }}>Last Name</label>
-                  <input name="lastName" type="text" value={form.lastName} onChange={handleChange} disabled={emailOtpVerified} style={{ width: "100%", padding: "12px 16px", border: "2px solid #dbeafe", borderRadius: 12, fontSize: 14, fontWeight: 500, outline: "none", background: "#eff6ff", boxSizing: "border-box" }} />
-                </div>
-              </div>
-             <div style={{ marginBottom: 24 }}>
-  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-    <Mail size={16} color="#9ca3af" />
-    <label style={{ fontSize: 13, fontWeight: 700, color: "#374151", margin: 0 }}>
-      Email Address
-    </label>
-  </div>
+                <div style={{ marginBottom: 24 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                    <Mail size={16} color="#9ca3af" />
+                    <label style={{ fontSize: 13, fontWeight: 700, color: "#374151", margin: 0 }}>
+                      Email Address
+                    </label>
+                  </div>
 
-  <input
-    name="email"
-    type="email"
-    value={form.email}
-    onChange={handleChange}
-    disabled={emailOtpVerified}
-    style={{
-      width: "100%",
-      padding: "12px 16px",
-      border: "2px solid #dbeafe",
-      borderRadius: 12,
-      fontSize: 14,
-      fontWeight: 500,
-      outline: "none",
-      background: "#eff6ff",
-      boxSizing: "border-box"
-    }}
-  />
-</div>
-              {!emailOtpVerified && (
-                <button onClick={handleSendEmailOtp} style={{ padding: "12px 24px", background: "#f5c100",
-color: "#1a0f00", border: "none", borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
-                  Send Verification Code
-                </button>
-              )}
-            </>
-          ) : (
-            /* PHASE 2: OTP INPUT (Replaces Details in the same container) */
-            <div>
-              <p style={{ fontSize: 14, color: "#475569", margin: "0 0 24px", fontWeight: 500 }}>
-                We've sent a secure code to <strong>{form.email}</strong>
-              </p>
-              <div style={{ display: "flex", gap: 12, marginBottom: 24 }}>
-                {[0, 1, 2, 3].map((i) => (
                   <input
-                    key={i}
-                    type="text"
-                    maxLength="1"
-                     autoFocus={i === 0}
-                    value={form.emailOtp[i] || ""}
-                    onChange={(e) => {
-                      const value = e.target.value.replace(/[^0-9]/g, "");
-                      const newOtp = form.emailOtp.substring(0, i) + value + form.emailOtp.substring(i + 1);
-                      setForm({ ...form, emailOtp: newOtp });
-                      if (value && e.target.nextSibling) e.target.nextSibling.focus();
-                    }}
+                    name="email"
+                    type="email"
+                    value={form.email}
+                    onChange={handleChange}
                     style={{
- width: 56,
- height: 56,
- textAlign: "center",
- fontSize: 20,
- fontWeight: 700,
- borderRadius: 12,
- border: "2px solid #dbeafe",
- outline: "none",
- background: "#fff",
- cursor: "text"
-}}
+                      width: "100%",
+                      padding: "12px 16px",
+                      border: "2px solid #dbeafe",
+                      borderRadius: 12,
+                      fontSize: 14,
+                      fontWeight: 500,
+                      outline: "none",
+                      background: "#eff6ff",
+                      boxSizing: "border-box"
+                    }}
                   />
-                ))}
-              </div>
-              <div style={{ display: "flex", gap: 12 }}>
-                <button onClick={handleVerifyEmailOtp} style={{ flex: 1, padding: "12px 24px", background: "#f5c100",
-color: "#1a0f00", border: "none", borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
-                  Verify Email
-                </button>
-                <button onClick={() => setEmailOtpSent(false)} style={{ padding: "12px 24px", background: "transparent", color: "#64748b", border: "1px solid #cbd5e1", borderRadius: 12, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
-                  Edit Details
-                </button>
                 </div>
-                {emailOtpVerified && (
-  <>
-    <div style={{ marginTop: 30 }}>
-      <label style={{ fontSize: 13, fontWeight: 700, color: "#374151", display: "block", marginBottom: 10 }}>
-        Phone Number
-      </label>
-
-      <input
-        name="phone"
-        type="tel"
-        value={form.phone}
-        onChange={handleChange}
-        disabled={phoneOtpSent}
-        style={{
-          width: "100%",
-          padding: "12px 16px",
-          border: "2px solid #fef3c7",
-          borderRadius: 12,
-          fontSize: 14,
-          fontWeight: 500,
-          background: "#fffbeb",
-          boxSizing: "border-box"
-        }}
-      />
-    </div>
-
-    {!phoneOtpSent ? (
-      <button
-        onClick={handleSendPhoneOtp}
-        style={{
-          marginTop: 16,
-          padding: "12px 24px",
-         background: "#f5c100",
-color: "#1a0f00",
-          border: "none",
-          borderRadius: 12,
-          fontSize: 13,
-          fontWeight: 700,
-          cursor: "pointer"
-        }}
-      >
-        Send Phone OTP
-      </button>
-    ) : (
-      <div style={{ marginTop: 16 }}>
-        <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
-          {[0,1,2,3].map(i => (
-            <input
-              key={i}
-              type="text"
-              maxLength="1"
-              value={form.phoneOtp[i] || ""}
-              onChange={(e)=>{
-                const val = e.target.value.replace(/[^0-9]/g,"");
-                const newOtp = form.phoneOtp.substring(0,i) + val + form.phoneOtp.substring(i+1);
-                setForm({...form, phoneOtp:newOtp});
-                if(val && e.target.nextSibling) e.target.nextSibling.focus();
-              }}
-              style={{
-                width:56,
-                height:56,
-                textAlign:"center",
-                fontSize:20,
-                fontWeight:700,
-                borderRadius:12,
-                border:"2px solid #fef3c7"
-              }}
-            />
-          ))}
-        </div>
-
-        <button
-          onClick={handleVerifyPhoneOtp}
-          style={{
-            width:"100%",
-            padding:"12px 24px",
-            background:"#111827",
-            color:"#fff",
-            border:"none",
-            borderRadius:12,
-            fontSize:13,
-            fontWeight:700
-          }}
-        >
-          Create Member
-        </button>
-      </div>
-    )}
-  </>
-)}
+                {!emailOtpVerified && (
+                  <button onClick={handleSendEmailOtp} style={{ width: "100%", padding: "12px 24px", background: "#f5c100", color: "#1a0f00", border: "none", borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                    Send Verification Code
+                  </button>
+                )}
+              </>
+            ) : (
+              /* PHASE 2: OTP INPUT */
+              <div>
+                <p style={{ fontSize: 14, color: "#475569", margin: "0 0 24px", fontWeight: 500 }}>
+                  We've sent a secure code to <strong>{form.email}</strong>
+                </p>
+                <div style={{ display: "flex", gap: 12, marginBottom: 24 }}>
+                  {[0, 1, 2, 3].map((i) => (
+                    <input
+                      key={i}
+                      type="text"
+                      maxLength="1"
+                      autoFocus={i === 0}
+                      value={form.emailOtp[i] || ""}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/[^0-9]/g, "");
+                        const newOtp = form.emailOtp.substring(0, i) + value + form.emailOtp.substring(i + 1);
+                        setForm({ ...form, emailOtp: newOtp });
+                        if (value && e.target.nextSibling) e.target.nextSibling.focus();
+                      }}
+                      style={{
+                        width: 56,
+                        height: 56,
+                        textAlign: "center",
+                        fontSize: 20,
+                        fontWeight: 700,
+                        borderRadius: 12,
+                        border: "2px solid #dbeafe",
+                        outline: "none",
+                        background: "#fff",
+                        cursor: "text"
+                      }}
+                    />
+                  ))}
+                </div>
+                <div style={{ display: "flex", gap: 12 }}>
+                  <button onClick={handleVerifyEmailOtp} style={{ flex: 1, padding: "12px 24px", background: "#f5c100", color: "#1a0f00", border: "none", borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                    Verify Email
+                  </button>
+                  <button onClick={() => setEmailOtpSent(false)} style={{ padding: "12px 24px", background: "transparent", color: "#64748b", border: "1px solid #cbd5e1", borderRadius: 12, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+                    Edit Details
+                  </button>
+                </div>
               </div>
-            
-          )}
-        </div>
+            )}
+          </div>
+        )}
+
+        {/* PHONE CONTAINER - SHOWS ONLY AFTER EMAIL VERIFIED */}
+        {emailOtpVerified && (
+          <div style={{
+            background: "#fffbeb",
+            borderRadius: 20,
+            border: "2px solid #fef3c7",
+            padding: "32px",
+            marginBottom: 24,
+            boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
+            transition: "all 0.3s ease"
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 28 }}>
+              <div style={{ width: 40, height: 40, borderRadius: 10, background: phoneOtpVerified ? "#16a34a" : "#f59e0b", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 18, fontWeight: 900 }}>
+                {phoneOtpVerified ? <Check size={20} /> : "3"}
+              </div>
+              <h3 style={{ fontSize: 18, fontWeight: 900, color: "#111827", margin: 0 }}>
+                Phone Verification
+              </h3>
+            </div>
+
+            <div style={{ marginBottom: 24 }}>
+              <label style={{ fontSize: 13, fontWeight: 700, color: "#374151", display: "block", marginBottom: 10 }}>
+                Phone Number
+              </label>
+
+              <input
+                name="phone"
+                type="tel"
+                placeholder="Enter 10-digit phone number"
+                value={form.phone}
+                onChange={handleChange}
+                disabled={phoneOtpSent}
+                style={{
+                  width: "100%",
+                  padding: "12px 16px",
+                  border: "2px solid #fef3c7",
+                  borderRadius: 12,
+                  fontSize: 14,
+                  fontWeight: 500,
+                  background: phoneOtpSent ? "#f0f0f0" : "#fffbeb",
+                  boxSizing: "border-box",
+                  opacity: phoneOtpSent ? 0.6 : 1,
+                  cursor: phoneOtpSent ? "not-allowed" : "text",
+                  color: "#111827"
+                }}
+              />
+            </div>
+
+            {!phoneOtpSent ? (
+              <button
+                onClick={handleSendPhoneOtp}
+                style={{
+                  width: "100%",
+                  padding: "12px 24px",
+                  background: "#f5c100",
+                  color: "#1a0f00",
+                  border: "none",
+                  borderRadius: 12,
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: "pointer"
+                }}
+              >
+                Send Phone OTP
+              </button>
+            ) : (
+              <div>
+                <p style={{ fontSize: 14, color: "#475569", margin: "0 0 24px", fontWeight: 500 }}>
+                  Enter the code sent to <strong>{form.phone}</strong>
+                </p>
+                <div style={{ display: "flex", gap: 12, marginBottom: 24 }}>
+                  {[0,1,2,3].map(i => (
+                    <input
+                      key={i}
+                      type="text"
+                      maxLength="1"
+                      autoFocus={i === 0}
+                      value={form.phoneOtp[i] || ""}
+                      onChange={(e)=>{
+                        const val = e.target.value.replace(/[^0-9]/g,"");
+                        const newOtp = form.phoneOtp.substring(0,i) + val + form.phoneOtp.substring(i+1);
+                        setForm({...form, phoneOtp:newOtp});
+                        if(val && e.target.nextSibling) e.target.nextSibling.focus();
+                      }}
+                      style={{
+                        width:56,
+                        height:56,
+                        textAlign:"center",
+                        fontSize:20,
+                        fontWeight:700,
+                        borderRadius:12,
+                        border:"2px solid #fef3c7",
+                        outline: "none",
+                        background: "#fff",
+                        cursor: "text"
+                      }}
+                    />
+                  ))}
+                </div>
+
+                <button
+                  onClick={handleVerifyPhoneOtp}
+                  style={{
+                    width:"100%",
+                    padding:"12px 24px",
+                    background:"#111827",
+                    color:"#fff",
+                    border:"none",
+                    borderRadius:12,
+                    fontSize:13,
+                    fontWeight:700,
+                    cursor: "pointer"
+                  }}
+                >
+                  Create Member
+                </button>
+              </div>
+            )}
+          </div>
+        )}
         
       </div>
 
-      {/* RIGHT SIDEBAR (Kept identical as per instructions) */}
+      {/* RIGHT SIDEBAR */}
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         
         <div style={{ background: "#fff", borderRadius: 16, border: "1.5px solid #e5e7eb", padding: "20px" }}>
