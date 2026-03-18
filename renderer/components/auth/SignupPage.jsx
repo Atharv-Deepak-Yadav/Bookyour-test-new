@@ -13,7 +13,7 @@ import AuthLayout from "./AuthLayout";
 /* ─────────────────────────────────────────────
    Shared tiny helpers
 ───────────────────────────────────────────── */
-const lbl = "text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1";
+const lbl = "text-sm font-bold text-gray-600 uppercase tracking-wide block mb-1";
 const inp  = "w-full px-3 py-2 rounded-lg border-2 border-gray-200 bg-white focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 outline-none text-gray-900 text-sm font-medium placeholder-gray-300 transition-all disabled:opacity-60";
 
 const Banner = ({ type, msg }) => msg ? (
@@ -148,30 +148,54 @@ const SignupPage = ({ onSignup, onGoToLogin }) => {
 
   clr();
   setLoading(true);
+try {
+  const response = await registrationPhoneVerify({
+    phone: s2.phone,
+    otp: s2.phoneOtp,
+    name: s1.name,
+    lastName: s1.lastName,
+    email: s1.email,
+    labName: s2.labName,
+    type: "Lab"  // ✅ Explicitly passing type
+  });
 
-  try {
-    const response = await registrationPhoneVerify({
-      phone: s2.phone,
-      otp: s2.phoneOtp,
-      name: s1.name,
-      lastName: s1.lastName,
-      email: s1.email,
-      labName: s2.labName,
-    });
+  console.log("✅ Signup success:", response);
 
-    console.log("Signup success:", response);
+  const token = response.token || response.authToken;
 
-    const token = response.token || response.authToken;
+  if (token) {
+    localStorage.setItem("auth_token", token);
 
-    if (token) {
-      localStorage.setItem("auth_token", token);
+    // Build userData from BOTH response AND form input
+    const apiUser = response.user || response.data || {};
+    
+    const userData = {
+      _id: apiUser._id || apiUser.id || "",
+      name: s1.name,              // ✅ From form (step 1)
+      lastName: s1.lastName,      // ✅ From form (step 1)
+      email: s1.email,            // ✅ From form (step 1)
+      phone: s2.phone,            // ✅ From form (step 2)
+      labName: s2.labName,        // ✅ From form (step 2) — THIS WAS MISSING!
+      type: "Lab",                // ✅ Explicit type
+      approvalStatus: apiUser.approvalStatus || "pending"
+    };
+
+    localStorage.setItem("user_data", JSON.stringify(userData));
+    console.log("✅ Signup saved user:", userData);
+
+    if (onSignup) {
+      onSignup({
+        ...userData,
+        fromSignup: true
+      });
     }
-
-  } catch (err) {
-    setError(err.message || "Registration failed.");
-  } finally {
-    setLoading(false);
   }
+
+} catch (err) {
+  setError(err.message || "Registration failed.");
+} finally {
+  setLoading(false);
+}
 };
 
   /* ── Progress bar width ── */
@@ -249,7 +273,7 @@ const SignupPage = ({ onSignup, onGoToLogin }) => {
 
         {/* ── RIGHT panel ── */}
         <div className="flex justify-center">
-          <div className="w-full max-w-sm bg-white/95 backdrop-blur-xl rounded-2xl px-7 py-6 shadow-2xl border border-white/40">
+          <div className="w-full max-w-md bg-white/95 backdrop-blur-xl rounded-2xl px-10 py-8 shadow-2xl border border-white/40">
 
             {/* Step indicator pills */}
             <div className="flex items-center gap-2 mb-4">
@@ -294,19 +318,23 @@ const SignupPage = ({ onSignup, onGoToLogin }) => {
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <label className={lbl}>name *</label>
-                      <input
-                        type="text" placeholder="Pradnya" value={s1.name}
-                        onChange={upS1("name")} disabled={emailOtpSent}
-                        className={inp}
-                      />
+                 <input
+  type="text"
+  value={s1.name}
+  onChange={upS1("name")}
+  disabled={emailOtpSent}
+  className={inp}
+/>
                     </div>
                     <div>
                       <label className={lbl}>Last Name *</label>
                       <input
-                        type="text" placeholder="Rajpure" value={s1.lastName}
-                        onChange={upS1("lastName")} disabled={emailOtpSent}
-                        className={inp}
-                      />
+  type="text"
+  value={s1.lastName}
+  onChange={upS1("lastName")}
+  disabled={emailOtpSent}
+  className={inp}
+/>
                     </div>
                   </div>
 
@@ -315,10 +343,12 @@ const SignupPage = ({ onSignup, onGoToLogin }) => {
                     <label className={lbl}>Email Address *</label>
                     <div className="flex gap-2">
                       <input
-                        type="email" placeholder="you@example.com" value={s1.email}
-                        onChange={upS1("email")} disabled={emailOtpSent}
-                        className={`${inp} flex-1`}
-                      />
+  type="email"
+  value={s1.email}
+  onChange={upS1("email")}
+  disabled={emailOtpSent}
+  className={`${inp} flex-1`}
+/>
 
                       {/* Not sent yet → Send OTP button */}
                       {!emailOtpSent && !emailOtpVerified && (
@@ -352,11 +382,12 @@ const SignupPage = ({ onSignup, onGoToLogin }) => {
                     <div>
                       <label className={lbl}>Email OTP *</label>
                       <div className="flex gap-2">
-                        <input
-                          type="tel" placeholder="Enter email OTP" value={s1.emailOtp}
-                          onChange={upS1("emailOtp")}
-                          className={`${inp} flex-1 tracking-widest`}
-                        />
+                       <input
+  type="tel"
+  value={s1.emailOtp}
+  onChange={upS1("emailOtp")}
+  className={`${inp} flex-1 tracking-widest`}
+/>
                         <button
                           onClick={handleVerifyEmailOtp} disabled={loading}
                           className="shrink-0 px-3 py-2 rounded-lg bg-gray-900 hover:bg-gray-800 text-white font-black text-[10px] uppercase tracking-wider transition-all disabled:opacity-50 whitespace-nowrap flex items-center gap-1"
@@ -404,14 +435,13 @@ const SignupPage = ({ onSignup, onGoToLogin }) => {
                     <label className={lbl}>
                       {s2.type === "Lab" ? "Laboratory Name *" : "Company Name *"}
                     </label>
-                    <input
-                      type="text"
-                      placeholder={s2.type === "Lab" ? "e.g. Rajpure Testing Lab" : "e.g. Rajpure Constructions"}
-                      value={s2.labName}
-                      onChange={upS2("labName")}
-                      disabled={phoneOtpSent}
-                      className={inp}
-                    />
+                <input
+  type="text"
+  value={s2.labName}
+  onChange={upS2("labName")}
+  disabled={phoneOtpSent}
+  className={inp}
+/>
                   </div>
 
                   {/* Phone number + Send OTP */}
@@ -419,11 +449,14 @@ const SignupPage = ({ onSignup, onGoToLogin }) => {
                     <label className={lbl}>Phone / WhatsApp *</label>
                     <div className="flex gap-2">
                       <input
-                        type="tel" placeholder="10-digit number" value={s2.phone}
-                        disabled={phoneOtpSent}
-                        onChange={e => setS2(f => ({ ...f, phone: e.target.value.replace(/\D/g, "").slice(0, 10) }))}
-                        className={`${inp} flex-1`}
-                      />
+  type="tel"
+  value={s2.phone}
+  disabled={phoneOtpSent}
+  onChange={e =>
+    setS2(f => ({ ...f, phone: e.target.value.replace(/\D/g, "").slice(0, 10) }))
+  }
+  className={`${inp} flex-1`}
+/>
                       {!phoneOtpSent && (
                         <button
                           onClick={handleSendPhoneOtp} disabled={loading}

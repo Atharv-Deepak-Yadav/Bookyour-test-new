@@ -5,14 +5,15 @@ import {
   Download,
   ChevronDown,
   QrCode,
-} from "lucide-react";
-import { useState, useCallback } from "react";
+} from "lucide-react";import { useState, useCallback, useEffect } from "react";
 import { PDFDocument, rgb } from "pdf-lib";
+import { fetchContractorMember } from "../../../services/api";
 import {
   uploadReport,
   uploadReportBlob,
   submitReportWithQR,
 } from "../../../services/api";
+
 
 // ─── Build QR image URL from any public URL ───────────────────────────────────
 // Uses the free QR Server API — no CORS issues, returns PNG
@@ -83,11 +84,27 @@ const TestDetailModal = ({ test, onClose }) => {
     );
   }, []);
 
-  if (!test) return null;
-  console.log("MODAL TEST DATA:", test);
+const [contractor, setContractor] = useState(null);
+
+if (!test) return null;
+
 console.log("MODAL TEST DATA:", test);
 
 const isApproved = test?.status?.toLowerCase() === "approved";
+
+useEffect(() => {
+  const loadContractor = async () => {
+    if (!test?.userId) return;
+
+    const data = await fetchContractorMember(test.userId);
+
+    console.log("CONTRACTOR JSON:", data);
+
+    setContractor(data);
+  };
+
+  loadContractor();
+}, [test]);
 
 const busy = uploading || submitting;
 
@@ -311,11 +328,11 @@ const busy = uploading || submitting;
             {/* Left */}
             <div>
               <SL>Contractor Info</SL>
-              <D label="PAN Number" value={test.panNumber} />
-              <D label="Aadhaar Number" value={test.aadhaarNumber} />
-              <D label="Registration Number" value={test.registrationNumber} />
-              <D label="Taluka" value={test.taluka} />
-              <D label="Contractor Name" value={test.contractorName} />
+              <D label="PAN Number" value={contractor?.panNumber} />
+<D label="Aadhaar Number" value={contractor?.aadharNumber} />
+<D label="Registration Number" value={contractor?.regitrationNumber} />
+<D label="Taluka" value={contractor?.taluka} />
+<D label="Contractor Name" value={contractor?.contractorName} />
               <div
                 style={{
                   borderRadius: 12,

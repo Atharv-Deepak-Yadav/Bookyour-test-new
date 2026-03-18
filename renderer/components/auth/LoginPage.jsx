@@ -1,7 +1,7 @@
-import { useState } from "react";
-import AuthLayout from "./AuthLayout";
-import { loginSendOtp, loginVerifyOtp } from "../../services/api";
 
+import AuthLayout from "./AuthLayout";
+import { loginSendOtp, loginVerifyOtp ,getMemberProfile } from "../../services/api";
+import { useState, useEffect } from "react";
 export const InputField = ({
   label,
   type = "text",
@@ -12,6 +12,7 @@ export const InputField = ({
   disabled,
 }) => {
   const [focused, setFocused] = useState(false);
+  
   return (
     <div>
       <label
@@ -53,6 +54,16 @@ const LoginPage = ({ onLogin, onGoToSignup }) => {
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState("");
   const [success, setSuccess]   = useState("");
+  const [timer, setTimer] = useState(0);
+  useEffect(() => {
+  if (timer > 0) {
+    const interval = setInterval(() => {
+      setTimer((prev) => prev - 1);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }
+}, [timer]);
 
   /* ── STEP 1: Send OTP ── */
   const handleSendOtp = async () => {
@@ -65,6 +76,7 @@ const LoginPage = ({ onLogin, onGoToSignup }) => {
       await loginSendOtp(phone);
       setSuccess(`✓ OTP sent to +91 ${phone}`);
       setStep(2);
+      setTimer(40); // 30 second timer
     } catch (err) {
       setError(err.message || "Failed to send OTP. Please try again.");
     } finally {
@@ -74,92 +86,143 @@ const LoginPage = ({ onLogin, onGoToSignup }) => {
 
   /* ── STEP 2: Verify OTP & Login ── */
   const handleVerifyOtp = async () => {
-    if (!otpInput) {
-      setError("Please enter the OTP.");
-      return;
-    }
+    if (otpInput.length !== 4) {
+  setError("Please enter a valid 4-digit OTP.");
+  return;
+}
     setError(""); setSuccess(""); setLoading(true);
 
     try {
       // 1. Verify OTP — backend returns token + full user profile
-      const res = await loginVerifyOtp(phone, otpInput);
+  const res = await loginVerifyOtp(phone, otpInput);
 
-      const token = res.token || res.authToken;
-      if (!token) throw new Error("Token not received from server");
+const token = res.token || res.authToken;
+if (!token) throw new Error("Token not received from server");
 
-      // 2. Save auth token
-      localStorage.setItem("auth_token", token);
-      localStorage.setItem("userId", phone);
+localStorage.setItem("auth_token", token);
 
-      // 3. Build user object directly from loginVerifyOtp response
-      //    (no separate getMemberProfile call needed)
-      const profile = res.user || res.data || res;
+const userId = res.user?._id || res.data?._id;
+let profileData = res.user || res.data;
 
-      const normalize = (num) =>
-        String(num || "").replace(/\D/g, "").slice(-10);
+if (!profileData) {
+  profileData = await getMemberProfile(userId);
+}
 
-      // Find correct profile if response is an array
-      let resolvedProfile = profile;
-      if (Array.isArray(profile)) {
-        resolvedProfile = profile.find((u) => {
-          const p =
-            normalize(u.phone) ||
-            normalize(u.phoneNumber) ||
-            normalize(u.mobile) ||
-            normalize(u.ph);
-          return p === normalize(phone);
-        }) || profile[0];
-      }
+if (Array.isArray(profileData) && profileData.length === 0) {
+  profileData = res.user || res.data;
+}
+let profile = profileData;
+
+if (Array.isArray(profileData)) {
+  profile =
+    profileData.find((u) => {
+      const p =
+        String(u.phoneNumber || u.phone || "").replace(/\D/g, "").slice(-10);
+      return p === phone;
+    }) || profileData[0];
+}
+
+
+const resolvedProfile = profile;
 
       if (!resolvedProfile) throw new Error("User profile not found in response");
+const rawType =
+  resolvedProfile.type ||
+  resolvedProfile.role ||
+  resolvedProfile.userType ||
+  "";
 
-      const finalType = String(
-        resolvedProfile.type ||
-        resolvedProfile.role ||
-        resolvedProfile.userType ||
-        "inspector"
-      ).trim().toLowerCase();
-const userObj = {
-  _id:    resolvedProfile._id   || resolvedProfile.id || phone,
-  id:     resolvedProfile._id   || resolvedProfile.id || phone,
-  phone:  resolvedProfile.phone || resolvedProfile.phoneNumber || resolvedProfile.ph || phone,
-  username: resolvedProfile.username || "",  // ← YOU ADDED THIS
+const finalType =
+  rawType.charAt(0).toUpperCase() +
+  rawType.slice(1).toLowerCase();
+const email =
+  resolvedProfile.email ||
+  resolvedProfile.email_id ||
+  resolvedProfile.userEmail ||
+  "";
+
+const emailPart = email
+  .split("@")[0]
+  .replace(/[0-9]/g, "");
+
+let extractedName = "";
+let extractedLastName = "";
+
+if (emailPart.includes("yadav")) {
+  extractedName = emailPart.replace("yadav", "");
+  extractedLastName = "yadav";
+} else {
+  extractedName = emailPart;
+}
+const username =
+  resolvedProfile.username ||
+  resolvedProfile.name ||
+  extractedName ||
+  (email ? email.split("@")[0] : "");
+   const rawStatus =
+  resolvedProfile.approvalStatus ??
+  resolvedProfile.status ??
+  resolvedProfile.isApproved ??
+  resolvedProfile.approved ??
+  false;
+const normalizedStatus = String(rawStatus).toLowerCase().trim();
+
+let approvalStatus = "pending";
+
+if (
+  normalizedStatus === "approved" ||
+  normalizedStatus === "true" ||
+  rawStatus === true
+) {
+  approvalStatus = "approved";
+}
+
+if (
+  normalizedStatus === "non-approved" ||
+  normalizedStatus === "rejected"
+) {
+  approvalStatus = "rejected";
+}const userObj = {
+  _id: resolvedProfile._id || resolvedProfile.id || phone,
+  phone: resolvedProfile.phone || phone,
+  
+
+  username: username,
+
   name:
     resolvedProfile.name ||
     resolvedProfile.firstName ||
-    resolvedProfile.first_name ||
+    extractedName ||
     "",
+
   lastName:
     resolvedProfile.lastName ||
-    resolvedProfile.last_name ||
     resolvedProfile.surname ||
+    extractedLastName ||
     "",
-        email:      resolvedProfile.email     || "",
-        labName:    resolvedProfile.labName   || "",
-        type:       finalType,
-        approvalStatus:
-          resolvedProfile.approved      ??
-          resolvedProfile.isApproved    ??
-          resolvedProfile.status        ??
-          resolvedProfile.approvalStatus ??
-          false,
-        // Address
-        address:  resolvedProfile.address  || "",
-        city:     resolvedProfile.city     || "",
-        district: resolvedProfile.district || "",
-        taluka:   resolvedProfile.taluka   || "",
-        // Bank
-        bankName:      resolvedProfile.bankName      || "",
-        ifscCode:      resolvedProfile.ifscCode      || "",
-        accountNumber: resolvedProfile.accountNumber || "",
-        branchName:    resolvedProfile.branchName    || "",
-        // GST
-        gstNumber: resolvedProfile.gstNumber || "",
-        applyGst:  resolvedProfile.applyGst  || "No",
-      };
+
+  email: resolvedProfile.email || "",
+  labName: resolvedProfile.labName || "",
+  type: finalType,
+  approvalStatus: approvalStatus,
+
+  address: resolvedProfile.address || "",
+  city: resolvedProfile.city || "",
+  district: resolvedProfile.district || "",
+  taluka: resolvedProfile.taluka || "",
+
+  bankName: resolvedProfile.bankName || "",
+  ifscCode: resolvedProfile.ifscCode || "",
+  accountNumber: resolvedProfile.accountNumber || "",
+  branchName: resolvedProfile.branchName || "",
+
+  gstNumber: resolvedProfile.gstNumber || "",
+  applyGst: resolvedProfile.applyGst || "No",
+};
 
       // 4. Save to localStorage
-      localStorage.setItem("user_data", JSON.stringify(userObj));
+  userObj.approvalStatus = approvalStatus;
+localStorage.setItem("user_data", JSON.stringify(userObj));
       console.log("✅ Login successful:", userObj);
 
       // 5. Notify parent (index.jsx) — triggers routing by type
@@ -300,9 +363,9 @@ const userObj = {
                     </label>
                     <input
                       type="tel"
-                      placeholder="Enter 6-digit OTP"
+                      placeholder="Enter 4-digit OTP"
                       value={otpInput}
-                      onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                    onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, "").slice(0, 4))}
                       onKeyDown={(e) => e.key === "Enter" && handleVerifyOtp()}
                       disabled={loading}
                       className="w-full px-3 py-2 rounded-lg border-2 bg-white outline-none text-gray-900 text-sm font-medium tracking-widest placeholder-gray-300 transition-all disabled:opacity-60 border-gray-200 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20"
@@ -317,14 +380,22 @@ const userObj = {
                     {loading ? "Verifying..." : "Verify & Login"}
                   </button>
                   <p className="text-center text-xs text-gray-400">
-                    Didn't receive?{" "}
-                    <button
-                      onClick={handleResend}
-                      className="font-black text-yellow-700 underline bg-transparent border-none cursor-pointer hover:text-yellow-800"
-                    >
-                      Resend OTP
-                    </button>
-                  </p>
+
+  {timer > 0 ? (
+    <span>Resend OTP in {timer}s</span>
+  ) : (
+    <>
+      Didn't receive?{" "}
+      <button
+        onClick={handleSendOtp}
+        className="font-black text-yellow-700 underline bg-transparent border-none cursor-pointer hover:text-yellow-800"
+      >
+        Resend OTP
+      </button>
+    </>
+  )}
+
+</p>
                 </>
               )}
 
@@ -336,7 +407,7 @@ const userObj = {
               <div className="flex-1 h-px bg-gray-100" />
             </div>
 
-            <p className="text-center text-xs text-gray-400">
+          <p className="text-center text-sm text-gray-700 font-semibold">
               Don't have an account?{" "}
               <button
                 onClick={onGoToSignup}

@@ -12,6 +12,7 @@ import AddMemberPage from "./pages/AddMemberPage";
    PAGE CONFIGURATION
 ----------------------------------------- */
 
+
 const PAGE_CONFIG = {
   home: {
     title: "Home",
@@ -74,7 +75,8 @@ const DashboardLayout = ({ user, onLogout, defaultPage }) => {
   const [isCollapsed, setIsCollapsed]   = useState(false);
   const [activePage, setActivePageState] = useState(defaultPage || "dashboard");
   const [showPopup, setShowPopup]       = useState(false);
-  const [popupShownOnce, setPopupShownOnce] = useState(false);
+ 
+
 
   /* -----------------------------------------
      RESOLVE USER TYPE & APPROVAL STATUS
@@ -82,20 +84,27 @@ const DashboardLayout = ({ user, onLogout, defaultPage }) => {
 
   const userData = JSON.parse(localStorage.getItem("user_data") || "{}");
 
-  // Normalise type
-  const userType = String(
-    userData.type || userData.role || userData.userType || ""
-  ).trim().toLowerCase();
+console.log("USER TYPE:", user.type);
 
-  const isInspector = userType === "inspector";
+  // Normalise type
+const userType = String(
+  userData.type || userData.role || userData.userType || user?.type || ""
+).trim(); // ✅ Remove .toLowerCase()
+const isInspector = String(userType).toLowerCase() === "inspector"; // ✅ Capital I
 
   // Approval status — inspectors skip this check entirely
-  const status = userData?.approvalStatus ?? userData?.status;
-const isApproved = isInspector
-  ? true
-  : status === true || status === "true" || status === "approved" || status === "Approved"
-    ? true
-    : false;  // ✅ Explicitly handles boolean true
+const rawStatus =
+  userData?.status ??
+  userData?.approvalStatus ??
+  user?.status ??
+  user?.approvalStatus ??
+  "";
+
+const status = String(rawStatus).toLowerCase().trim();
+
+const isApproved =
+  String(status).toLowerCase() === "approved";
+
 
   console.log("🧑‍💼 userType:", userType, "| isApproved:", isApproved);
 
@@ -103,28 +112,25 @@ const isApproved = isInspector
      SHOW POPUP IF LAB USER IS UNAPPROVED
   ----------------------------------------- */
 
-  useEffect(() => {
-    if (!isInspector && !isApproved && activePage !== "account" && !popupShownOnce) {
-      setShowPopup(true);
-      setPopupShownOnce(true);
-    }
-  }, [activePage, isApproved, isInspector, popupShownOnce]);
+useEffect(() => {
 
+  if (isInspector) {
+    setShowPopup(false);
+    return;
+  }
+
+  setShowPopup(!isApproved);
+
+}, [isApproved, isInspector]);
   /* -----------------------------------------
      NAVIGATION WITH APPROVAL CHECK
      Inspectors: free to navigate their 2 pages
      Lab users: blocked until approved
   ----------------------------------------- */
-
-  const setActivePage = (page) => {
-    if (!isInspector && !isApproved && page !== "account") {
-      setShowPopup(true);
-      return;
-    }
-    setActivePageState(page);
-    setShowPopup(false);
-  };
-
+const setActivePage = (page) => {
+  setActivePageState(page);
+  setShowPopup(false);
+};
   const handlePopupOK = () => {
     setShowPopup(false);
     setActivePageState("account");
@@ -136,7 +142,7 @@ const isApproved = isInspector
 
   const config      = PAGE_CONFIG[activePage];
   const PageContent = PAGE_COMPONENTS[activePage];
-  const canViewPage = isApproved || activePage === "account";
+  const canViewPage = true;
   const sidebarMargin = isCollapsed ? 72 : 240;
 
   return (
@@ -257,7 +263,7 @@ const isApproved = isInspector
                         border: isInspector ? "1px solid #93c5fd" : "1px solid #fde68a",
                       }}
                     >
-                      {isInspector ? "🔍 Inspector" : "🧪 Lab"}
+                      {userType.charAt(0).toUpperCase() + userType.slice(1)}
                     </span>
 
                     {/* ✅ Show approval status badge for lab users */}

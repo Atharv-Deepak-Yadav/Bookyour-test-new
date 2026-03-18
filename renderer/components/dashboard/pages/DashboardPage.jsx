@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import StatCards from "../shared/StatCards";
 import TestTable from "../shared/TestTable";
 import { fetchDashboardData, transformApiData } from "../../../services/api";
+import { getMemberProfile } from "../../../services/api";
+import { fetchContractorMember } from "../../../services/api";
 
 const DashboardPage = () => {
   const [tests, setTests] = useState([]);
@@ -11,29 +13,59 @@ const DashboardPage = () => {
 
 
  useEffect(() => {
+  checkApproval();
+}, []);
+
+const checkApproval = async () => {
+  try {
     const user = JSON.parse(localStorage.getItem("user_data"));
 
+    if (!user?._id) {
+      setLoading(false);
+      return;
+    }
+
+    const freshUser = await getMemberProfile(user._id);
+
+    const profile = Array.isArray(freshUser) ? freshUser[0] : freshUser;
+
     const status =
-  user?.status ||
-  user?.approvalStatus ||
-  user?.approved ||
-  false;
-if (status === "Approved" || status === true) {
-  setApproved(true);
-  loadData();
-} else {
-  setApproved(false);
-}
-  }, []);
+      profile?.approvalStatus ||
+      profile?.status ||
+      "pending";
+
+    console.log("APPROVAL STATUS:", status);
+
+    if (String(status).toLowerCase() === "approved") {
+      setApproved(true);
+      await loadData();   // ⭐ IMPORTANT
+    } else {
+      setApproved(false);
+      setLoading(false);  // ⭐ spinner stop
+    }
+
+  } catch (err) {
+    console.error("Approval check error:", err);
+    setLoading(false);   // ⭐ spinner stop even on error
+  }
+};
   const loadData = async () => {
     try {
       setLoading(true);
 
       const raw = await fetchDashboardData();
+      console.log("FULL DASHBOARD DATA:", raw);
       console.log("📊 Dashboard API Response:", raw);
 
-      const transformed = transformApiData(raw);
-      console.log("✅ Transformed Data:", transformed);
+     console.log("🔍 RAW API RESPONSE:", JSON.stringify(raw, null, 2));
+const user = JSON.parse(localStorage.getItem("user_data"));
+console.log("USER ID:", user._id);
+
+const transformed = transformApiData(raw || {});
+
+console.log("🔍 TRANSFORMED DATA:", JSON.stringify(transformed, null, 2));
+
+
 
       setTests(transformed);
       setError(null);

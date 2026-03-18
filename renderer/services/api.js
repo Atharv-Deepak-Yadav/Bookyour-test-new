@@ -139,7 +139,6 @@ export const SignupSendOtp = async (phone) => {
   }
   return data;
 };
-
 export const loginVerifyOtp = async (phone, otp) => {
 
   const response = await fetch(`${API_BASE_URL}/VerifyOtp`, {
@@ -157,48 +156,34 @@ export const loginVerifyOtp = async (phone, otp) => {
     throw new Error(data.message || `API Error: ${response.status}`);
   }
 
- // Extract user safely
-const user = data.user || data.data || {};
+  // Save token
+  if (data.token) {
+    setAuthToken(data.token);
+  }
 
-// Normalize approval status
-const rawStatus = user.approvalStatus || user.status || "";
+  const user = data.user || data.data || {};
 
-const approvalStatus =
-  String(rawStatus).toLowerCase() === "approved"
-    ? "approved"
-    : "pending";
-
-// Save user data
-setUserData({
-  _id: user._id || user.id,
-  phone: phone,
-  name:
-    user.name ||
-    user.firstName ||
-    user.first_name ||
-    "",
-  lastName:
-    user.lastName ||
-    user.last_name ||
-    "",
-  email:
-    user.email ||
-    user.email_id ||
-    "",
-  labName:
-    user.labName ||
-    user.lab_name ||
-    "",
-  type: user.type || "lab",
-  approvalStatus
-});
+  setUserData({
+    _id: user._id || user.id,
+    phone: user.phone || phone,
+    name: user.name || "",
+    lastName: user.lastName || "",
+   email:
+  user.email ||
+  user.email_id ||
+  user.userEmail ||
+  "",
+    labName: user.labName || "",
+   type: user.type,
+    approvalStatus: user.approvalStatus || "pending"
+  });
 
   return data;
 };
-export const getMemberProfile = async (phone) => {
+export const getMemberProfile = async (userId) => {
   const token = localStorage.getItem("auth_token");
 
-  const response = await fetch(`${API_BASE_URL}/members?phone=${phone}`, {
+  const response = await fetch(`${API_BASE_URL}/members?_id=${userId}`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
@@ -222,6 +207,8 @@ export const registrationPhoneVerify = async ({
   lastName,
   email,
   labName,
+  district,
+  taluka,
   type
 }) => {
 
@@ -237,7 +224,9 @@ export const registrationPhoneVerify = async ({
       lastName: lastName,
       email: email,
       labName: labName,
-     type: "lab"
+       district: district,
+ taluka: taluka,
+     type: type 
     }),
   });
 
@@ -248,20 +237,9 @@ export const registrationPhoneVerify = async ({
     throw new Error(data.message || "Registration failed. Please try again.");
   }
 
- if (data.token) setAuthToken(data.token);
+console.log("Inspector created successfully");
 
-const user = data.user || data.data || data;
-
-setUserData({
-  _id: user._id || user.id,
-  phone,
- name: user.name || name,
-  lastName,
-  email,
-  labName,
-  type: type || "lab"
-});
-  return data;
+return data;
 };
 
 // ─────────────────────────────────────────────
@@ -341,40 +319,56 @@ export const fetchMembers = async () => {
     if (firstArray) list = firstArray;
   }
 
-  const seen = new Set();
-  return list.filter((item) => {
-    const key = item?.title;
-    if (!key || seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
+return list;
 };
-
 export const fetchTestData = async () => {
-  const response = await fetch(`${API_BASE_URL}/test_data`, {
-    method: "GET",
-    headers: getAuthHeaders(),
-  });
-  if (!response.ok) {
-    const errJson = await response.json().catch(() => ({}));
-    throw new Error(`API failed: ${response.status} - ${errJson.message || ""}`);
-  }
-  const data = await response.json();
-  return data?.totaltest?.items ?? [];
-};
 
+  const user = JSON.parse(localStorage.getItem("user_data") || "{}");
+
+  const response = await fetch(
+    `${API_BASE_URL}/test_data?labId=${user._id}`,
+    {
+      method: "GET",
+      headers: getAuthHeaders(),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`API failed: ${response.status}`);
+  }
+
+  const data = await response.json();
+
+  console.log("TEST API RESPONSE:", data);
+
+  if (data?.totaltest?.items) {
+    return data.totaltest.items;
+  }
+
+  return [];
+};
 export const addTest = async ({ title, test, unit, price, expiredDate }) => {
   const response = await fetch(`${API_BASE_URL}/add_test`, {
     method: "POST",
     headers: getAuthHeaders(),
-    body: JSON.stringify({ title, test, unit, price, expiredDate }),
+    body: JSON.stringify({
+      title,
+      test,
+      unit,
+      price,
+      expiredDate
+    }),
   });
+
   if (!response.ok) {
     const errJson = await response.json().catch(() => ({}));
     throw new Error(`API failed: ${response.status} - ${errJson.message || ""}`);
   }
+
   return await response.json();
-};export const deleteTest = async (id) => {
+};
+
+export const deleteTest = async (id) => {
 
   const response = await fetch(`${API_BASE_URL}/delete_test`, {
     method: "DELETE",
@@ -401,6 +395,29 @@ export const fetchDashboardData = async () => {
   if (!response.ok) throw new Error(`API Error: ${response.status}`);
   return await response.json();
 };
+export const fetchContractorMember = async (userId) => {
+  const token = localStorage.getItem("auth_token");
+
+  const response = await fetch(
+    `${API_BASE_URL}/Contractormembers?userId=${userId}`,
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`Contractor API failed: ${response.status}`);
+  }
+
+  const data = await response.json();
+  console.log("👷 Contractor API:", data);
+
+return Array.isArray(data) ? data : [data];
+};
 
 export const fetchMaterials = async () => {
   const response = await fetch(`${API_BASE_URL}/material`, {
@@ -414,11 +431,15 @@ export const fetchMaterials = async () => {
   const data = await response.json();
   return Array.isArray(data) ? data : (data?.items || []);
 };
+
 export const transformApiData = (apiResponse) => {
+ 
   let items = [];
 
   if (apiResponse?.totalTest?.items) items = apiResponse.totalTest.items;
   else if (apiResponse?.items) items = apiResponse.items;
+  else if (apiResponse?.data) items = apiResponse.data;
+  else if (apiResponse?.bookingData) items = apiResponse.bookingData;
   else if (Array.isArray(apiResponse)) items = apiResponse;
 
   if (!items.length) return [];
@@ -430,30 +451,86 @@ export const transformApiData = (apiResponse) => {
     else if (item.insepectorStatus === "Done") finalStatus = "Approved";
 
     return {
-      id: item._id,
-      workName: item.nameOfWork || "N/A",
-      taluka: item.selectDivision || "N/A",
-      contractorName: item.userEmail?.split("@")[0] || "N/A",
-      totalAmount: item.workOrderAmount || 0,
+  id: item._id || item.id,
+ userId: item.contractorId || item._owner || item.userId || "",
 
-      // ⭐ ADD THESE
-      panNumber: item.panNumber || "N/A",
-      aadhaarNumber: item.aadhaarNumber || "N/A",
-      registrationNumber: item.registrationNumber || "N/A",
+  workName: item.nameOfWork || item.workName || "N/A",
 
-      documents: [
-        item.workOrderDocument && { name: "Work Order", url: item.workOrderDocument },
-        item.report && { name: "Report", url: item.report },
-      ].filter(Boolean),
+materialName:
+  item.materialName ||
+  item.material ||
+  item.material_name ||
+  item.materialTitle ||
+  item.test ||
+  item.materials?.[0]?.materialName ||
+  item.materialData?.[0]?.materialName ||
+  "N/A",
 
-      materials: item.materials || [],
+  price:
+    item.totalAmount ||
+    item.workOrderAmount ||
+    item.amount ||
+    0,
+
+  // ⭐ ADD THESE FIELDS
+  panNumber:
+    item.panNumber ||
+    item.pan_number ||
+    item.contractorPan ||
+    "",
+
+  aadhaarNumber:
+    item.aadhaarNumber ||
+    item.aadharNumber ||
+    item.contractorAadhar ||
+    "",
+
+  registrationNumber:
+    item.registrationNumber ||
+    item.regNumber ||
+    item.registration_no ||
+    "",
+
+  taluka:
+    item.selectDivision ||
+    item.taluka ||
+    "",
+
+  contractorName:
+    item.contractorName ||
+    item.contractor_name ||
+    item.userEmail?.split("@")[0] ||
+    "",
+
+  totalAmount:
+    item.workOrderAmount ||
+    item.totalAmount ||
+    item.amount ||
+    0,
 
       status: finalStatus,
-      rejectionReason: item.reason || "",
+
+      rejectionReason:
+        item.reason ||
+        item.rejectionReason ||
+        "",
+
+     documents: [
+  (item.workOrderDocument || item.workOrder || item.document) && {
+    name: "Work Order",
+    url: item.workOrderDocument || item.workOrder || item.document,
+  },
+
+  (item.report || item.reportFile) && {
+    name: "Report",
+    url: item.report || item.reportFile,
+  },
+].filter(Boolean),
+
+      materials: item.materials || item.materialData || [],
     };
   });
 };
-
 export const labNameVerification = async (labName) => {
   const response = await fetch(`${API_BASE_URL}/LabNameVerification`, {
     method: "POST",
@@ -537,14 +614,17 @@ export const post_uploadFilewithQR = async ({
   return data;
 };
 export const uploadReport = async (file) => {
-  console.log("📤 [UPLOAD REPORT] Uploading:", file.name, `(${(file.size / 1024).toFixed(1)} KB)`);
+  console.log(
+    "📤 [UPLOAD REPORT] Uploading:",
+    file.name,
+    `(${(file.size / 1024).toFixed(1)} KB)`
+  );
 
   const formData = new FormData();
   formData.append("file", file);
 
-  // NOTE: Do NOT set Content-Type header — browser sets it automatically
-  // with the correct multipart boundary.
   const token = localStorage.getItem(TOKEN_KEY);
+
   const headers = {};
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
@@ -563,14 +643,19 @@ export const uploadReport = async (file) => {
   }
 
   const data = await response.json();
+
   console.log("✅ [UPLOAD REPORT] Success:", data);
 
-  // Validate required fields
-  if (!data.fileUrl || !data.publicUrl) {
-    throw new Error("Upload succeeded but response is missing fileUrl or publicUrl");
+  // FIX: accept either fileUrl or publicUrl
+  if (!data.fileUrl && !data.publicUrl) {
+    throw new Error("Upload succeeded but response missing file URL");
   }
 
-  return data; // { fileUrl, publicUrl, qrCodeUrl }
+  return {
+    fileUrl: data.fileUrl || null,
+    publicUrl: data.publicUrl || data.fileUrl,
+    qrCodeUrl: data.qrCodeUrl || null,
+  };
 };
 
 /**
@@ -641,6 +726,38 @@ export const submitReportWithQR = async ({ bookingId, fileUrl, editUrl, qrCodeUr
 // ─────────────────────────────────────────────
 // 📋 REPORT APPROVAL ENDPOINTS
 // ─────────────────────────────────────────────
+// ─────────────────────────────────────────────
+// 📋 REPORT APPROVAL ENDPOINTS
+// ─────────────────────────────────────────────
+
+// ⭐ NEW API
+export const getMembersStatus = async () => {
+
+  const token = localStorage.getItem("auth_token");
+
+  const response = await fetch(
+    `${API_BASE_URL}/membersStatus`,
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`Members status API failed: ${response.status}`);
+  }
+
+  const data = await response.json();
+
+  console.log("Members Status:", data);
+
+  return data;
+};
+
+
 
 export const fetchInspectorDashboard = async () => {
   console.log("📊 [INSPECTOR DASHBOARD] Fetching pending reports...");
@@ -674,7 +791,11 @@ export const fetchInspectorDashboard = async () => {
     id: item._id,
     workName: item.nameOfWork,
     taluka: item.selectDivision,
-    contractorName: item.userEmail?.split("@")[0] || "N/A",
+    contractorName:
+  item.contractorName ||
+  item.contractor_name ||
+  item.userEmail?.split("@")[0] ||
+  "",
     totalAmount: item.workOrderAmount || 0,
     status: item.status,
     insepectorStatus: item.insepectorStatus,
@@ -727,7 +848,31 @@ export const checkLabMemberLimit = async () => {
 
   return data;
 };
+export const fetchInspectorByLabName = async () => {
 
+  const token = localStorage.getItem("auth_token");
+
+  const response = await fetch(
+    `${API_BASE_URL}/inspector`,
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`Inspector API failed: ${response.status}`);
+  }
+
+  const data = await response.json();
+
+  console.log("👮 Inspector API:", data);
+
+return Array.isArray(data) ? data : [data];
+};
 export const rejectReport = async (bookingId, reason) => {
   const response = await fetch(`${API_BASE_URL}/rejectReport`, {
     method: "POST",
@@ -739,6 +884,32 @@ export const rejectReport = async (bookingId, reason) => {
     throw new Error(errJson.error || errJson.message || `HTTP ${response.status}`);
   }
   return await response.json();
+};
+export const deleteMember = async (id) => {
+
+  const token = localStorage.getItem("auth_token");
+
+  const response = await fetch(
+    `${API_BASE_URL}/delete_member`,
+    {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        _id: id
+      })
+    }
+  );
+
+  const data = await response.json();
+
+  if (!response.ok || !data.success) {
+    throw new Error(data.message || "Delete failed");
+  }
+
+  return data;
 };
 export default {
   setAuthToken,
@@ -756,6 +927,7 @@ export default {
   registerMember,
   fetchMembers,
   addTest,
+  deleteTest,
   fetchDashboardData,
   fetchMaterials,
   transformApiData,
@@ -777,5 +949,6 @@ export default {
   acceptReport,
 
   rejectReport,
+    getMembersStatus,
     checkLabMemberLimit,
 };

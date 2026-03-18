@@ -218,4 +218,7 @@
   border-color: #f59e0b;
   box-shadow: 0 0 0 2px rgba(245,158,11,0.15);
 }
+.reject-tooltip-parent:hover .reject-tooltip {
+  opacity: 1;
+}
 }

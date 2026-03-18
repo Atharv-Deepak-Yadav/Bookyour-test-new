@@ -62,6 +62,11 @@ const ApprovalPage = () => {
   // Success message state
   const [successMessage, setSuccessMessage] = useState(null);
 
+const [tooltipVisible, setTooltipVisible] = useState({});
+  
+  // Tooltip state - IMPORTANT: Initialize as empty object (no tooltips visible)
+
+
   // Load data on mount
   useEffect(() => {
     loadReports();
@@ -90,15 +95,15 @@ const ApprovalPage = () => {
         
         try {
           // ✅ USE fetchDashboardData (same as Dashboard page - IT WORKS!)
-         const data = await fetchInspectorDashboard();
-console.log("✅ Inspector Dashboard Data:", data);
+          const data = await fetchInspectorDashboard();
+          console.log("✅ Inspector Dashboard Data:", data);
 
-if (!data || data.length === 0) {
-  console.warn("⚠️ No pending reports");
-  setRecords([]);
-} else {
-  setRecords(data);
-}
+          if (!data || data.length === 0) {
+            console.warn("⚠️ No pending reports");
+            setRecords([]);
+          } else {
+            setRecords(data);
+          }
         } catch (apiErr) {
           console.error("❌ API Error:", apiErr.message);
           console.log("📊 Falling back to mock data...");
@@ -115,92 +120,98 @@ if (!data || data.length === 0) {
       setLoading(false);
     }
   };
-const handleApprove = async (id, workName) => {
-  if (submitting) return;
-  setSubmitting(true);
 
-  try {
-    if (!useMockData) {
-      await acceptReport(id);
+  const handleApprove = async (id, workName) => {
+    if (submitting) return;
+    setSubmitting(true);
 
-      // 🔥 IMPORTANT
-      await loadReports();
+    try {
+      if (!useMockData) {
+        await acceptReport(id);
+        await loadReports();
+      }
+
+      setSuccessMessage({
+        type: "success",
+        title: "Report Approved! ✅",
+        message: `${workName} has been approved successfully`,
+      });
+
+    } catch (err) {
+      setSuccessMessage({
+        type: "error",
+        title: "Approval Failed ❌",
+        message: err.message,
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleRejectSubmit = async () => {
+    if (rejectReason.trim().length === 0) {
+      return;
     }
 
-    setSuccessMessage({
-      type: "success",
-      title: "Report Approved! ✅",
-      message: `${workName} has been approved successfully`,
-    });
+    if (submitting) return;
+    setSubmitting(true);
 
-  } catch (err) {
-    setSuccessMessage({
-      type: "error",
-      title: "Approval Failed ❌",
-      message: err.message,
-    });
-  } finally {
-    setSubmitting(false);
-  }
-};
-const handleRejectSubmit = async () => {
+    try {
+      if (!useMockData) {
+        await rejectReport(rejectModal.id, rejectReason);
+        await loadReports();
+      }
 
-  if (rejectReason.trim().length === 0) {
-    return; // stop if empty
-  }
+      setSuccessMessage({
+        type: "warning",
+        title: "Report Rejected ❌",
+        message: `${rejectModal.workName} has been rejected`,
+      });
 
-  if (submitting) return;
-  setSubmitting(true);
+      setRejectModal(null);
+      setRejectReason("");
 
-  try {
-
-    if (!useMockData) {
-      await rejectReport(rejectModal.id, rejectReason);
-      await loadReports();
+    } catch (err) {
+      setSuccessMessage({
+        type: "error",
+        title: "Rejection Failed ❌",
+        message: err.message,
+      });
+    } finally {
+      setSubmitting(false);
     }
-
-    setSuccessMessage({
-      type: "warning",
-      title: "Report Rejected ❌",
-      message: `${rejectModal.workName} has been rejected`,
-    });
-
-    setRejectModal(null);
-    setRejectReason("");
-
-  } catch (err) {
-
-    setSuccessMessage({
-      type: "error",
-      title: "Rejection Failed ❌",
-      message: err.message,
-    });
-
-  } finally {
-    setSubmitting(false);
-  }
-};
+  };
 
   // Calculate stats
   const totalPending = records.filter(
-  r =>
-    r.status === "Done" &&
-    r.insepectorStatus === "In-Progress"
-).length;
+    r =>
+      r.status === "Done" &&
+      r.insepectorStatus === "In-Progress"
+  ).length;
 
-const approvedToday = records.filter(
-  r =>
-    r.insepectorStatus === "Done" &&
-    r.status !== "reject"
-).length;
+  const approvedToday = records.filter(
+    r =>
+      r.insepectorStatus === "Done" &&
+      r.status !== "reject"
+  ).length;
 
-const rejectedToday = records.filter(
-  r =>
-    r.status === "reject"
-).length;
+  const rejectedToday = records.filter(
+    r =>
+      r.status === "reject"
+  ).length;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 20,
+        background: "#ffffff",
+        padding: "20px",
+        borderRadius: "16px",
+        minHeight: "100vh"
+      }}
+    >
 
       {/* SUCCESS/ERROR MESSAGE POPUP */}
       {successMessage && (
@@ -214,7 +225,6 @@ const rejectedToday = records.filter(
           background: successMessage.type === "success" ? "#f0fdf4" : successMessage.type === "warning" ? "#fef2f2" : "#fef2f2",
           border: `2px solid ${successMessage.type === "success" ? "#22c55e" : "#dc2626"}`,
           zIndex: 2000,
-        
           maxWidth: 400,
         }}>
           <style>{`
@@ -335,7 +345,13 @@ const rejectedToday = records.filter(
 
       {/* Pending table */}
       {!loading && !error && (
-        <div style={{ borderRadius: 16, background: "#fff", border: "1px solid #f0ede6", boxShadow: "0 4px 20px rgba(0,0,0,0.05)", overflow: "hidden" }}>
+        <div style={{ 
+  borderRadius: 16,
+  background: "#fff",
+  border: "1px solid #f0ede6",
+  boxShadow: "0 4px 20px rgba(0,0,0,0.05)",
+  overflow: "visible"
+}}>
           <div style={{ padding: "18px 24px", borderBottom: "1px solid #f0ede6", background: "linear-gradient(90deg,#fffdf5,#fff)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div>
               <h2 style={{ fontSize: 15, fontWeight: 900, color: "#111", margin: 0 }}>Pending Approvals</h2>
@@ -353,197 +369,208 @@ const rejectedToday = records.filter(
               <p style={{ fontSize: 12, color: "#9ca3af", margin: 0 }}>No pending approvals at this time.</p>
             </div>
           ) : (
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead>
-                <tr style={{ background: "#fafaf8", borderBottom: "2px solid #f0ede6" }}>
-                  {["Work Name", "Taluka", "Contractor", "Amount", "Submitted", "View Report", "Actions", "Status"].map((h) => (
-                    <th key={h} style={{ padding: "11px 20px", textAlign: "left", fontSize: 9, fontWeight: 900, textTransform: "uppercase", letterSpacing: ".15em", color: "#9ca3af" }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {records.map((r, i) => {
-                 const isPending =
-  r.status === "Done" &&
-  r.insepectorStatus === "In-Progress";
-
-const isApproved =
-  r.insepectorStatus === "Done" &&
-  r.status !== "reject";
-
-const isRejected =
-  r.status === "reject";
-                  
-                  return (
-                    <tr 
-                      key={r.id} 
-                      style={{ 
-                        borderBottom: "1px solid #f5f4f0", 
-                        background: isApproved ? "#f0fdf4" : isRejected ? "#fef2f2" : i % 2 === 1 ? "#fdfdf9" : "#fff"
-                      }}
-                    >
-                      <td style={{ padding: "13px 20px", fontSize: 13, fontWeight: 800, color: "#111" }}>{r.workName}</td>
-                      <td style={{ padding: "13px 20px", fontSize: 13, color: "#6b7280" }}>{r.taluka}</td>
-                      <td style={{ padding: "13px 20px", fontSize: 13, color: "#6b7280" }}>{r.contractorName}</td>
-                      <td style={{ padding: "13px 20px", fontSize: 13, fontWeight: 900, color: "#111" }}>₹{r.totalAmount?.toLocaleString("en-IN")}</td>
-                      <td style={{ padding: "13px 20px", fontSize: 11, color: "#9ca3af" }}>20 Feb 2026</td>
-                      
-                      {/* VIEW REPORT COLUMN */}
-                      <td style={{ padding: "13px 20px" }}>
-                        <button
-                          onClick={() =>
-                            setViewModal({
-                              ...r,
-                              pdfUrl: "https://s3-civil-pdf-co.s3.ap-south-1.amazonaws.com/documents/92ffd59f-f04c-432a-b148-8f4105ba46d8.pdf"
-                            })
-                          }
-                          style={{
-                            padding: "6px 14px",
-                            borderRadius: 8,
-                            fontSize: 11,
-                            fontWeight: 700,
-                            border: "1px solid #dbeafe",
-                            background: "#eff6ff",
-                            color: "#2563eb",
-                            cursor: "pointer"
-                          }}
-                        >
-                          📄 View Report
-                        </button>
-                      </td>
-
-                      {/* ACTIONS COLUMN */}
-                      <td style={{ padding: "13px 20px" }}>
-                        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                          
-                          {isPending && (
-                            <>
-                              <button
-                                onClick={() => handleApprove(r.id, r.workName)}
-                                style={{
-                                  padding: "7px 16px",
-                                  borderRadius: 999,
-                                  fontSize: 12,
-                                  fontWeight: 700,
-                                  border: "none",
-                                  background: "linear-gradient(135deg,#22c55e,#16a34a)",
-                                  color: "#fff",
-                                  cursor: "pointer"
-                                }}
-                              >
-                                ✓ Approve
-                              </button>
-
-                              <button
-                                onClick={() => {
-  setViewModal(null);
-  setRejectModal({ id: r.id, workName: r.workName });
-}}
-                                style={{
-                                  padding: "7px 16px",
-                                  borderRadius: 999,
-                                  fontSize: 12,
-                                  fontWeight: 700,
-                                  border: "1px solid #fecaca",
-                                  background: "#fff",
-                                  color: "#dc2626",
-                                  cursor: "pointer"
-                                }}
-                              >
-                                ✕ Reject
-                              </button>
-                            </>
-                          )}
-
-                          {isApproved && (
-                            <div style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: 6,
-                              padding: "6px 14px",
-                              borderRadius: 8,
-                              background: "#dcfce7",
-                              border: "1.5px solid #86efac"
-                            }}>
-                              <CheckCircle size={14} color="#16a34a" />
-                              <span style={{ fontSize: 11, fontWeight: 800, color: "#16a34a" }}>
-                                APPROVED
-                              </span>
-                            </div>
-                          )}
-
-                          {isRejected && (
-                            <div style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: 6,
-                              padding: "6px 14px",
-                              borderRadius: 8,
-                              background: "#fee2e2",
-                              border: "1.5px solid #fca5a5"
-                            }}>
-                              <XCircle size={14} color="#dc2626" />
-                              <span style={{ fontSize: 11, fontWeight: 800, color: "#dc2626" }}>
-                                REJECTED
-                              </span>
-                            </div>
-                          )}
-
-                        </div>
-                      </td>
-
-                      {/* STATUS COLUMN */}
-                      <td style={{ padding: "13px 20px", maxWidth: 280 }}>
+           <div style={{ overflowX: "auto", overflowY: "visible" }}>
+              <table style={{ 
+                width: "100%",
+                borderCollapse: "collapse",
+                position: "relative",
+                zIndex: 1
+              }}>
+                <thead>
+                  <tr style={{ background: "#fafaf8", borderBottom: "2px solid #f0ede6" }}>
+                    {["Work Name", "Taluka", "Amount", "Submitted", "View Report", "Actions", "Status"].map((h) => (
+                      <th key={h} style={{ padding: "11px 20px", textAlign: "left", fontSize: 9, fontWeight: 900, textTransform: "uppercase", letterSpacing: ".15em", color: "#9ca3af", whiteSpace: "nowrap" }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {records.map((r, i) => {
+                    const isPending = r.status === "Done" && r.insepectorStatus === "In-Progress";
+                    const isApproved = r.insepectorStatus === "Done" && r.status !== "reject";
+                    const isRejected = r.status === "reject";
+                    console.log(r);
+                    
+                    return (
+                      <tr 
+                        key={r.id} 
+                        style={{ 
+                          borderBottom: "1px solid #f5f4f0", 
+                     background: "#fff"
+                        }}
+                      >
+                        <td style={{ padding: "16px 28px", fontSize: 13, fontWeight: 800, color: "#111" }}>{r.workName}</td>
+                        <td style={{ padding: "16px 28px", fontSize: 13, color: "#6b7280" }}>{r.taluka}</td>
+                 
+                        <td style={{ padding: "16px 28px", fontSize: 13, fontWeight: 900, color: "#111" }}>₹{r.totalAmount?.toLocaleString("en-IN")}</td>
+                        <td style={{ padding: "16px 28px", fontSize: 11, color: "#9ca3af" }}>20 Feb 2026</td>
                         
-                        {isPending && (
-                          <StatusBadge status="Pending" />
-                        )}
-
-                        {isApproved && (
-                          <span style={{
-                            fontSize: 14,
-                            fontWeight: 700,
-                            color: "#166534"
-                          }}>
-                            Report Accepted
-                          </span>
-                        )}
-
-                        {isRejected && (
-                          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                            
-                            <span style={{
-                              fontSize: 14,
+                        {/* VIEW REPORT COLUMN */}
+                        <td style={{ padding: "16px 28px" }}>
+                          <button
+                            onClick={() =>
+                              setViewModal({
+                                ...r,
+                                pdfUrl: "https://s3-civil-pdf-co.s3.ap-south-1.amazonaws.com/documents/92ffd59f-f04c-432a-b148-8f4105ba46d8.pdf"
+                              })
+                            }
+                            style={{
+                              padding: "6px 14px",
+                              borderRadius: 8,
+                              fontSize: 11,
                               fontWeight: 700,
-                              color: "#991b1b"
-                            }}>
-                              Report Rejected
-                            </span>
+                              border: "1px solid #dbeafe",
+                              background: "#eff6ff",
+                              color: "#2563eb",
+                              cursor: "pointer"
+                            }}
+                          >
+                            📄 View Report
+                          </button>
+                        </td>
 
-                            {r.rejectionReason && (
+                        {/* ACTIONS COLUMN */}
+                        <td style={{ padding: "13px 20px" }}>
+                          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                            
+                            {isPending && (
+                              <>
+                                <button
+                                  onClick={() => handleApprove(r.id, r.workName)}
+                                  style={{
+                                    padding: "7px 16px",
+                                    borderRadius: 999,
+                                    fontSize: 12,
+                                    fontWeight: 700,
+                                    border: "none",
+                                    background: "linear-gradient(135deg,#22c55e,#16a34a)",
+                                    color: "#fff",
+                                    cursor: "pointer"
+                                  }}
+                                >
+                                  ✓ Approve
+                                </button>
+
+                                <button
+                                  onClick={() => {
+                                    setViewModal(null);
+                                    setRejectModal({ id: r.id, workName: r.workName });
+                                  }}
+                                  style={{
+                                    padding: "7px 16px",
+                                    borderRadius: 999,
+                                    fontSize: 12,
+                                    fontWeight: 700,
+                                    border: "1px solid #fecaca",
+                                    background: "#fff",
+                                    color: "#dc2626",
+                                    cursor: "pointer"
+                                  }}
+                                >
+                                  ✕ Reject
+                                </button>
+                              </>
+                            )}
+
+                            {isApproved && (
                               <div style={{
-                                padding: "8px 10px",
-                                background: "#fff1f2",
-                                border: "1px solid #fecaca",
-                                borderRadius: 6,
-                                fontSize: 13,
-                                color: "#7f1d1d",
-                                lineHeight: 1.4,
-                                wordBreak: "break-word"
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 6,
+                                padding: "6px 14px",
+                                borderRadius: 8,
+                                background: "#dcfce7",
+                                border: "1.5px solid #86efac"
                               }}>
-                                {r.rejectionReason}
+                                <CheckCircle size={14} color="#16a34a" />
+                                <span style={{ fontSize: 11, fontWeight: 800, color: "#16a34a" }}>
+                                  APPROVED
+                                </span>
                               </div>
                             )}
-                          </div>
-                        )}
 
-                      </td>
+  {isRejected && (
+  <div
+    onMouseEnter={() => setTooltipVisible(prev => ({ ...prev, [r.id]: true }))}
+    onMouseLeave={() => setTooltipVisible(prev => ({ ...prev, [r.id]: false }))}
+    style={{ position: "relative", display: "inline-block" }}
+  >
+    <div style={{
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      padding: "6px 14px",
+      borderRadius: 8,
+      background: "#fee2e2",
+      border: "1.5px solid #fca5a5",
+      cursor: "pointer"
+    }}>
+      <XCircle size={14} color="#dc2626" />
+      <span style={{ fontSize: 11, fontWeight: 800, color: "#dc2626" }}>
+        REJECTED
+      </span>
+    </div>
+
+    {tooltipVisible[r.id] && r.reason && (
+      <div style={{
+        position: "absolute",
+        top: "120%",   // 👈 खाली येईल
+        left: "50%",
+        transform: "translateX(-50%)",
+        background: "#dc2626",   // 👈 red background
+        color: "#fff",
+        padding: "12px 16px",
+        borderRadius: 8,
+        fontSize: 12,
+        width: 340,
+        boxShadow: "0 10px 30px rgba(0,0,0,0.3)",
+        zIndex: 9999
+      }}>
+        {r.reason}
+      </div>
+    )}
+  </div>
+)}
+
+                          </div>
+                        </td>
+<td style={{ padding: "13px 20px" }}>
+
+  {isPending && (
+    <StatusBadge status="Pending" />
+  )}
+
+  {isApproved && (
+    <span
+      style={{
+        fontSize: 14,
+        fontWeight: 700,
+        color: "#166534"
+      }}
+    >
+      Report Accepted
+    </span>
+  )}
+
+  {isRejected && (
+    <span
+      style={{
+        fontSize: 14,
+        fontWeight: 700,
+        color: "#dc2626"
+      }}
+    >
+      Report Rejected
+    </span>
+  )}
+
+</td>
                            
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       )}
@@ -554,9 +581,8 @@ const isRejected =
           style={{
             position: "fixed",
             inset: 0,
-          background: "#f3f4f6",
-backdropFilter: "none",
-         
+            background: "#f3f4f6",
+            backdropFilter: "none",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -565,23 +591,21 @@ backdropFilter: "none",
         >
           <div
             style={{
-           width: "100vw",
-    height: "100vh",
-    background: "#f3f4f6",
-    display: "flex",
-    flexDirection: "column",
-              overflow: "hidden",
-              boxShadow: "0 40px 120px rgba(0,0,0,0.6)",
+              width: "100vw",
+              height: "100vh",
+              background: "#f3f4f6",
               display: "flex",
-              flexDirection: "column"
+              flexDirection: "column",
+              overflow: "hidden",
+              boxShadow: "0 40px 120px rgba(0,0,0,0.6)"
             }}
           >
             {/* Header */}
             <div
               style={{
                 padding: "16px 24px",
-             background: "linear-gradient(135deg,#facc15,#eab308)",
-color: "#1f2937",
+                background: "linear-gradient(135deg,#facc15,#eab308)",
+                color: "#1f2937",
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
@@ -595,10 +619,9 @@ color: "#1f2937",
               <button
                 onClick={() => setViewModal(null)}
                 style={{
-                 background: "rgba(255,255,255,0.1)",
-color: "#ffffff",
+                  background: "rgba(255,255,255,0.1)",
+                  color: "#ffffff",
                   border: "none",
-                  
                   fontSize: 18,
                   borderRadius: 8,
                   padding: "6px 12px",
@@ -610,23 +633,23 @@ color: "#ffffff",
             </div>
 
             {/* PDF Area */}
-         {/* PDF Area */}
-<div
-  style={{
-    flex: 1,
-    background: "#f3f4f6"
-  }}
->
-  <iframe
-    src={`${viewModal.pdfUrl}#toolbar=0`}
-    title="PDF Viewer"
-    style={{
-      width: "100%",
-      height: "100%",
-      border: "none"
-    }}
-  />
-</div> </div>
+            <div
+              style={{
+                flex: 1,
+                background: "#f3f4f6"
+              }}
+            >
+              <iframe
+                src={`${viewModal.pdfUrl}#toolbar=0`}
+                title="PDF Viewer"
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  border: "none"
+                }}
+              />
+            </div>
+          </div>
         </div>
       )}
 
@@ -674,33 +697,33 @@ color: "#ffffff",
                 Cancel
               </button>
               <button
-  onClick={handleRejectSubmit}
-  disabled={submitting || rejectReason.trim().length === 0}
-  style={{
-    flex: 1,
-    padding: 10,
-    borderRadius: 8,
-    fontSize: 12,
-    fontWeight: 800,
-    background: rejectReason.trim()
-      ? "#fef2f2"
-      : "#f3f4f6",
-    color: rejectReason.trim()
-      ? "#991b1b"
-      : "#9ca3af",
-    border: "1.5px solid #fecaca",
-    cursor:
-      submitting || rejectReason.trim().length === 0
-        ? "not-allowed"
-        : "pointer",
-    opacity:
-      submitting || rejectReason.trim().length === 0
-        ? 0.6
-        : 1
-  }}
->
-  {submitting ? "Rejecting..." : "Confirm Rejection"}
-</button>
+                onClick={handleRejectSubmit}
+                disabled={submitting || rejectReason.trim().length === 0}
+                style={{
+                  flex: 1,
+                  padding: 10,
+                  borderRadius: 8,
+                  fontSize: 12,
+                  fontWeight: 800,
+                  background: rejectReason.trim()
+                    ? "#fef2f2"
+                    : "#f3f4f6",
+                  color: rejectReason.trim()
+                    ? "#991b1b"
+                    : "#9ca3af",
+                  border: "1.5px solid #fecaca",
+                  cursor:
+                    submitting || rejectReason.trim().length === 0
+                      ? "not-allowed"
+                      : "pointer",
+                  opacity:
+                    submitting || rejectReason.trim().length === 0
+                      ? 0.6
+                      : 1
+                }}
+              >
+                {submitting ? "Rejecting..." : "Confirm Rejection"}
+              </button>
             </div>
           </div>
         </div>

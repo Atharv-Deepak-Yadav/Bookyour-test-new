@@ -26,12 +26,26 @@ const TestTable = ({ tests = [] }) => {
 
         {/* Table */}
         <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
             <thead>
               <tr style={{ background: "#fafaf8", borderBottom: "2px solid #f0ede6" }}>
-                {["Work Name", "Taluka", "Contractor", "Total Amount","Status", "Action"].map((h) => (
-                  <th key={h} style={{ padding: "11px 20px", textAlign: "left", fontSize: 10, fontWeight: 1000, textTransform: "uppercase", letterSpacing: ".15em", color: "#black" }}>{h}</th>
-                ))}
+              {["Work Name", "Material Name", "Price","Status", "Action"].map((h) => (
+  <th
+    key={h}
+    style={{
+      padding: "11px 20px",
+      textAlign: "left",
+      fontSize: 10,
+      fontWeight: 1000,
+      textTransform: "uppercase",
+      letterSpacing: ".15em",
+      color: "#000",
+      width: "20%"   // ⭐ ADD THIS
+    }}
+  >
+    {h}
+  </th>
+))}
               </tr>
             </thead>
             <tbody>
@@ -44,12 +58,21 @@ const TestTable = ({ tests = [] }) => {
                   onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(245,193,0,0.04)")}
                   onMouseLeave={(e) => (e.currentTarget.style.background = i % 2 === 1 ? "#fdfdf9" : "#fff")}
                 >
-                  <td style={{ padding: "13px 20px", fontSize: 13, fontWeight: 800, color: "#111" }}>{test.workName}</td>
-                  <td style={{ padding: "13px 20px", fontSize: 13, color: "#6b7280" }}>{test.taluka}</td>
-                  <td style={{ padding: "13px 20px", fontSize: 13, color: "#6b7280" }}>{test.contractorName}</td>
-                  <td style={{ padding: "13px 20px", fontSize: 13, fontWeight: 900, color: "#111" }}>₹{test.totalAmount?.toLocaleString("en-IN")}</td>
-                  {/* <td style={{ padding: "13px 20px", fontSize: 11, color: "#9ca3af", maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{test.details}</td> */}
-                  <td style={{ padding: "13px 20px" }}><StatusBadge status={test.status} rejectionReason={test.rejectionReason} /></td>
+               <td style={{ padding: "13px 20px", fontSize: 13, fontWeight: 800 }}>
+  {test.workName}
+</td>
+
+<td style={{ padding: "13px 20px", fontSize: 13 }}>
+  {test.materialName}
+</td>
+
+<td style={{ padding: "13px 20px", fontSize: 13, fontWeight: 900 }}>
+  ₹{Number(test.price).toLocaleString("en-IN")}
+</td>
+
+<td style={{ padding: "13px 20px" }}>
+  <StatusBadge status={test.status} rejectionReason={test.rejectionReason} />
+</td>
                   <td style={{ padding: "13px 20px" }}>
                     <button
 onClick={() => {

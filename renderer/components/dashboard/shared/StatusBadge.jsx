@@ -45,54 +45,72 @@ const statusConfig = {
 
 const StatusBadge = ({ status, rejectionReason }) => {
   const config = statusConfig[status] ?? statusConfig["Pending"];
-  return (
-    <div style={{ position: "relative", display: "inline-block" }} className="group">
+
+  return (<div style={{ position: "relative", display: "inline-block" }} className="group">
+      
       <span
         style={{
-          display: "inline-flex", alignItems: "center", gap: 6,
-          padding: "5px 10px", borderRadius: 8,
-          fontSize: 10, fontWeight: 900, textTransform: "uppercase", letterSpacing: ".06em",
-          background: config.bg, color: config.color, border: `1.5px solid ${config.border}`,
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 6,
+          padding: "5px 10px",
+          borderRadius: 8,
+          fontSize: 10,
+          fontWeight: 900,
+          textTransform: "uppercase",
+          letterSpacing: ".06em",
+          background: config.bg,
+          color: config.color,
+          border: `1.5px solid ${config.border}`,
         }}
       >
-        <span style={{ width: 6, height: 6, borderRadius: "50%", background: config.dot, flexShrink: 0 }} />
+        <span
+          style={{
+            width: 6,
+            height: 6,
+            borderRadius: "50%",
+            background: config.dot,
+            flexShrink: 0
+          }}
+        />
         {config.label}
-        {config.showAlert && rejectionReason && <AlertCircle size={11} style={{ marginLeft: 2 }} />}
-      </span>
 
-     {config.showAlert && rejectionReason && (
+        {config.showAlert && rejectionReason && (
+          <AlertCircle size={11} style={{ marginLeft: 2 }} />
+        )}
+      </span>
+{config.showAlert && rejectionReason && (
   <div
-    className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 z-50"
-    style={{ 
-      background: "#7f1d1d",
-      color: "#fee2e2",
-      fontSize: 12,
-      borderRadius: 12,
-      padding: "12px 16px",
-      width: 240,
-      border: "1px solid #fecaca",
-      boxShadow: "0 12px 30px rgba(220,38,38,0.35)"
-    }}
-  >
-    <div style={{ fontSize: 9, fontWeight: 900, textTransform: "uppercase", letterSpacing: ".14em", color: "#fde68a", marginBottom: 4 }}>
-      Rejection Reason
-    </div>
-    <div style={{ color: "#fee2e2", lineHeight: 1.5 }}>
-      {rejectionReason}
-    </div>
-    <div style={{
+    className="opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+    style={{
       position: "absolute",
-      top: "100%",
+      top: "120%",
       left: "50%",
       transform: "translateX(-50%)",
-      width: 0,
-      height: 0,
-      borderLeft: "6px solid transparent",
-      borderRight: "6px solid transparent",
-      borderTop: "6px solid #7f1d1d"
-    }} />
+
+      background: "#8b1e1e",
+      color: "#fee2e2",
+
+      padding: "12px 16px",
+
+      fontSize: 12,
+      lineHeight: 1.4,
+
+      borderRadius: 6,
+
+      width: 320,
+
+      border: "1px solid #fecaca",
+      boxShadow: "0 10px 25px rgba(0,0,0,0.25)",
+      pointerEvents: "none",   
+
+      zIndex: 999
+    }}
+  >
+    {rejectionReason}
   </div>
 )}
+
     </div>
   );
 };

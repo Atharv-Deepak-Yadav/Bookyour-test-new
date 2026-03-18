@@ -30,6 +30,8 @@ const rawType =
 
 const userType = String(rawType).trim().toLowerCase();
 
+const isInspector = userType === "inspector";
+
 console.log("USER TYPE:", userType);
 
   console.log("🔍 User Type:", userType);
@@ -53,10 +55,20 @@ if (userType === "inspector") {
   ];
 }
 
-  const handleNavigation = (pageKey) => {
-    setActivePage(pageKey);
-  };
+const handleNavigation = (pageKey) => {
 
+  const userData = JSON.parse(localStorage.getItem("user_data") || "{}");
+
+  const status = String(userData.approvalStatus || "").toLowerCase();
+
+  // Pending user only account page open
+  if (status !== "approved" && pageKey !== "account") {
+    alert("Your account is pending approval. Please wait for admin approval.");
+    return;
+  }
+
+  setActivePage(pageKey);
+};
   const sidebarWidth = isCollapsed ? 72 : 240;
 
   return (
@@ -91,23 +103,28 @@ if (userType === "inspector") {
         >
           {/* TOGGLE BUTTON */}
           <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            style={{
-              position: "absolute",
-              top: "10px",
-              right: "10px",
-              width: "32px",
-              height: "32px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              borderRadius: "8px",
-              background: "#000",
-              border: "none",
-              cursor: "pointer",
-              zIndex: 5,
-            }}
-          >
+  onClick={() => setIsCollapsed(!isCollapsed)}
+  style={{
+    position: "fixed",
+    top: "10px",
+
+    // ⭐ MAIN FIX
+    left: isCollapsed ? "20px" : "240px",
+
+    width: "32px",
+    height: "32px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: "8px",
+    background: "#000",
+    border: "none",
+    cursor: "pointer",
+    zIndex: 2000,
+    transition: "left 0.3s ease",
+    boxShadow: "0 4px 10px rgba(0,0,0,0.25)"
+  }}
+>
             {isCollapsed ? (
               <Menu size={16} color="white" />
             ) : (

@@ -3,39 +3,59 @@ import Head from "next/head";
 import LoginPage       from "../components/auth/LoginPage";
 import SignupPage      from "../components/auth/SignupPage";
 import DashboardLayout from "../components/dashboard/DashboardLayout";
+import { getMemberProfile } from "../services/api";
 
 export default function App() {
   const [user, setUser]         = useState(null);
   const [authPage, setAuthPage] = useState("login");
-  const [defaultPage, setDefaultPage] = useState("dashboard");
+ const [defaultPage, setDefaultPage] = useState("account");
   const [loading, setLoading]   = useState(true);
 
   // ✅ Restore user on app load
-  useEffect(() => {
+useEffect(() => {
+  const restoreUser = () => {
     const storedUser = localStorage.getItem("user_data");
-    const token      = localStorage.getItem("auth_token");
+    const token = localStorage.getItem("auth_token");
 
     if (storedUser && token) {
       const parsed = JSON.parse(storedUser);
+
       setUser(parsed);
 
-      // ✅ Restore correct defaultPage based on type
-      const type = String(parsed.type || "").trim().toLowerCase();
-      setDefaultPage(type === "inspector" ? "account" : "dashboard");
+      const status = parsed.approvalStatus ?? parsed.status;
 
-      console.log("🔁 User restored from localStorage, type:", type);
+      const isApproved =
+        typeof status === "string"
+          ? status.toLowerCase() === "approved"
+          : !!status;
+
+      const type = String(parsed.type || "").toLowerCase().trim();
+
+      if (type === "inspector") {
+        setDefaultPage("account");
+      } else {
+        setDefaultPage(isApproved ? "dashboard" : "account");
+      }
     }
+  };
 
-    setLoading(false);
-  }, []);
+  restoreUser();
+  setLoading(false);
+
+  const interval = setInterval(restoreUser, 20000);
+
+  return () => clearInterval(interval);
+}, []);
+
+
 
   const isAuthenticated = !!user;
 
   // ✅ Called by LoginPage on success — route by type
   const handleLogin = (userData) => {
-    const type = String(userData.type || "").trim().toLowerCase();
+  const type = String(userData.type || "").toLowerCase().trim();
 
-    if (type === "inspector") {
+if (type === "inspector") {
       // Inspectors land on their account page (only 2 pages available)
       setDefaultPage("account");
     } else {

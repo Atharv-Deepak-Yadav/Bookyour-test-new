@@ -47,16 +47,40 @@ const [deleteId, setDeleteId] = useState(null);
         // Map API fields → table row shape
         // API: { _id, title, test, unit, price, _updatedDate, expiredDate }
         setRows(
-          items.map((item) => ({
-            id:          item._id,
-            material:    item.title,
-            test:        item.test,
-            unit:        item.unit,
-            amount:      item.price ?? null,
-            updatedDate: item._updatedDate?.slice(0, 10) ?? "",
-            expiredDate: item.expiredDate ?? "",
-          }))
-        );
+  items.map((item) => ({
+    id: item._id || item.id,
+
+    material:
+      item.title ||
+      item.material ||
+      item.name ||
+      "N/A",
+
+    test:
+      item.test ||
+      item.testName ||
+      "N/A",
+
+    unit:
+      item.unit ||
+      item.unitName ||
+      "N/A",
+
+    amount:
+      item.price ??
+      item.amount ??
+      null,
+
+    updatedDate:
+      item._updatedDate?.slice(0, 10) ||
+      item.updatedDate ||
+      "",
+
+    expiredDate:
+      item.expiredDate ||
+      ""
+  }))
+);
       } catch (err) {
         console.error("❌ fetchTestData error:", err.message);
         setTableError(err.message);
@@ -99,40 +123,50 @@ useEffect(() => {
   // ── Called by AddTestModal after successful API save ─────────────────────
   // Modal handles the POST /add_test call itself; this just updates local state.
   const handleSave = (form) => {
-    if (editRow) {
-      setRows((r) =>
-        r.map((row) =>
-          row.id === editRow.id
-            ? {
-                ...row,
-                material: form.material,
-                test:        form.test,
-                unit:        form.unit,
-                amount: form.amount ? Number(form.amount) : null,
-                updatedDate: new Date().toISOString().slice(0, 10),
-                expiredDate: form.expiredDate,
-              }
-            : row
-        )
-      );
-      showToast("success", "Test updated successfully.");
-    } else {
-      setRows((r) => [
-        {
-          id:          Date.now(),
-          material:    form.material,
-          test:        form.test,
-          unit:        form.unit,
-         amount: form.amount ? Number(form.amount) : null,
-          updatedDate: new Date().toISOString().slice(0, 10),
-          expiredDate: form.expiredDate,
-        },
-        ...r,
-      ]);
-      showToast("success", "Test added to catalogue.");
-    }
-    setEditRow(null);
-  };
+
+  if (editRow) {
+
+    setRows((r) =>
+      r.map((row) =>
+        row.id === editRow.id
+          ? {
+              ...row,
+              material: form.material,
+              test: form.test,
+              unit: form.unit,
+              amount: form.amount ? Number(form.amount) : null,
+              updatedDate: new Date().toISOString().slice(0, 10),
+              expiredDate: form.expiredDate,
+            }
+          : row
+      )
+    );
+
+    showToast("success", "Test updated successfully.");
+
+  } else {
+
+    setRows((r) => [
+      {
+        id: Date.now(),
+        material: form.material,
+        test: form.test,
+        unit: form.unit,
+        amount: form.amount ? Number(form.amount) : null,
+        updatedDate: new Date().toISOString().slice(0, 10),
+        expiredDate: form.expiredDate,
+      },
+      ...r,
+    ]);
+
+    showToast("success", "Test added successfully.");
+
+  }
+
+  setEditRow(null);
+  setShowModal(false);
+
+};
 
   const handleEdit   = (row) => { setEditRow(row); setShowModal(true); };
  const handleDelete = async (id) => {

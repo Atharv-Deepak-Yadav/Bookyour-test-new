@@ -59,6 +59,7 @@ const [labData, setLabData] = useState({
 const [districtData, setDistrictData] = useState([]);
 const [districtOptions, setDistrictOptions] = useState([]);
 const [talukaOptions, setTalukaOptions] = useState([]);
+const [hoverField, setHoverField] = useState(null);
 
   // ========== API INTEGRATION: LOAD ALL DATA FROM LOCALSTORAGE ==========
   useEffect(() => {
@@ -83,22 +84,49 @@ let extractedLastName =
 // If name missing, extract from EMAIL: "atharvayadav1135@gmail.com" → "atharva"
 // Extract from EMAIL: "atharvayadav1135" → "atharva" + "yadav"
 if (!extractedName && parsedUser?.email) {
-  const emailPart = parsedUser.email.split("@")[0].replace(/\d+$/, ""); // Remove numbers: "atharvayadav"
-  
-  // Simple approach: first 7 chars is usually the first name
-  if (emailPart.length >= 7) {
-    extractedName = emailPart.substring(0, 7); // "atharva"
-    extractedLastName = emailPart.substring(7); // "yadav"
+
+  const emailPart = parsedUser.email
+    .split("@")[0]
+    .replace(/[0-9]/g, "");
+
+  // detect common surname split
+  if (emailPart.includes("yadav")) {
+
+    extractedName = emailPart.replace("yadav", "");
+    extractedLastName = "yadav";
+
   } else {
+
     extractedName = emailPart;
+    extractedLastName = "";
+
   }
 }
+// FIX: update localStorage if name missing
+if (!parsedUser.name && extractedName) {
 
+  const updatedUser = {
+    ...parsedUser,
+    name: extractedName,
+    lastName: extractedLastName
+  };
+
+  localStorage.setItem("user_data", JSON.stringify(updatedUser));
+
+  console.log("🔧 Fixed name in localStorage:", updatedUser);
+}
       setLabData((prev) => ({
         ...prev,
-        name: extractedName,
-        lastName: extractedLastName,
-        labName: parsedUser.labName && parsedUser.labName.toLowerCase() !== "lab"
+  name:
+  parsedUser?.name && parsedUser.name.trim() !== ""
+    ? parsedUser.name
+    : extractedName,
+
+lastName:
+  parsedUser?.lastName && parsedUser.lastName.trim() !== ""
+    ? parsedUser.lastName
+    : extractedLastName,
+        labName: parsedUser.labName && parsedUser.labName !== "Lab"
           ? parsedUser.labName
           : parsedUser.parentLabName || parsedUser.laboratory_name || parsedUser.lab_name || "",
         labEmail: parsedUser.email || parsedUser.labEmail || parsedUser.email_id || "",
@@ -113,11 +141,8 @@ if (!extractedName && parsedUser?.email) {
         branchName: parsedUser.branchName || parsedUser.branch_name || "",
         gstNumber: parsedUser.gstNumber || parsedUser.gst_number || "",
         applyGST: parsedUser.applyGst || parsedUser.applyGST || parsedUser.apply_gst || "No",
-      registrationDoc: parsedUser?.registractionNabl || null,
-labApprovalDoc: parsedUser?.approvalCertificate || null,
-gstCertificateDoc: parsedUser?.gstCertificate || null,
-isoCertificateDoc: parsedUser?.isoCertificate || null,
-cancelChequePic: parsedUser?.chequePhoto || null,
+      
+registrationDoc: parsedUser?.registractionNabl || null,
 
 labApprovalDoc:
   parsedUser?.approvalCertificate?.startsWith("wix:")
@@ -354,10 +379,12 @@ if (!userId) {
 
       // Update localStorage
       const updatedUser = {
-        ...parsedUser,
-        phoneNumber: Number(newPhoneNumber),
-        phone: newPhoneNumber,
-      };
+  ...parsedUser,
+  phoneNumber: Number(newPhoneNumber),
+  phone: newPhoneNumber
+};
+
+
 
       localStorage.setItem("user_data", JSON.stringify(updatedUser));
 
@@ -429,27 +456,27 @@ let cancelChequePicUrl = null;
 
 if (labData.registrationDoc instanceof File) {
   const res = await uploadReport(labData.registrationDoc);
-  registrationDocUrl = res.publicUrl;
+ registrationDocUrl = res.publicUrl || res.fileUrl;
 }
 
 if (labData.labApprovalDoc instanceof File) {
   const res = await uploadReport(labData.labApprovalDoc);
-  labApprovalDocUrl = res.publicUrl;
+  labApprovalDocUrl = res.publicUrl|| res.fileUrl;
 }
 
 if (labData.gstCertificateDoc instanceof File) {
   const res = await uploadReport(labData.gstCertificateDoc);
-  gstCertificateDocUrl = res.publicUrl;
+  gstCertificateDocUrl = res.publicUrl|| res.fileUrl;
 }
 
 if (labData.isoCertificateDoc instanceof File) {
   const res = await uploadReport(labData.isoCertificateDoc);
-  isoCertificateDocUrl = res.publicUrl;
+  isoCertificateDocUrl = res.publicUrl|| res.fileUrl;
 }
 
 if (labData.cancelChequePic instanceof File) {
   const res = await uploadReport(labData.cancelChequePic);
-  cancelChequePicUrl = res.publicUrl;
+  cancelChequePicUrl = res.publicUrl|| res.fileUrl;
 }
 
       // ========== PREPARE PAYLOAD ==========
@@ -550,12 +577,19 @@ console.log("✅ API Response:", result);
 const viewDocument = (file) => {
   if (!file) return;
 
-  if (typeof file === "string") {
-    window.open(file, "_blank");
-  } else {
-    const url = URL.createObjectURL(file);
-    window.open(url, "_blank");
+  let url = file;
+
+  if (typeof file !== "string") {
+    url = URL.createObjectURL(file);
   }
+
+  // Wix media URLs cannot open directly
+  if (url.startsWith("wix:")) {
+    alert("Document stored in Wix media. Please download to view.");
+    return;
+  }
+
+  window.open(url, "_blank");
 };
 // ===== DOWNLOAD DOCUMENT =====
 const downloadDocument = (file) => {
@@ -1026,50 +1060,54 @@ Welcome, {labData.name || "User"}
 
         {/* LABORATORY INFO */}
         <div className="bg-white rounded-xl shadow-lg p-6 mb-6 border border-gray-200" style={{ marginLeft: 8 }}>
-         <div
-  className="section-header"
-  style={{
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between"
-  }}
->
-  <h2
-    className="section-title"
-    style={{ margin: 0, textAlign: "left", flex: 1 }}
-  >
+      <div className="section-header">
+  <h2 className="section-title">
     Laboratory Information
   </h2>
-
-  <Download
-    size={18}
-    style={{ cursor: "pointer" }}
-    onClick={downloadLabPDF}
-  />
 </div><div className="grid grid-cols-2 gap-6">
 
 {/* ROW 1 */}
 <div>
 <label className="label-text block mb-2">Laboratory Name</label>
-<input 
-name="labName" 
-value={labData.labName} 
+
+<input
+name="labName"
+value={labData.labName}
 readOnly
+onMouseEnter={() => setHoverField("labName")}
+onMouseLeave={() => setHoverField(null)}
 className="w-full premium-input"
 style={{ backgroundColor: "#f9fafb", cursor: "not-allowed" }}
 />
+
+{hoverField === "labName" && (
+<div style={{color:"#dc2626",fontSize:"12px",marginTop:"4px",fontWeight:"600"}}>
+Lab Name cannot be edited. It is fixed by admin.
+</div>
+)}
+
 </div>
 
 <div>
 <label className="label-text block mb-2">Email Address</label>
-<input 
-name="labEmail" 
+
+<input
+name="labEmail"
+value={labData.labEmail}
 readOnly
-value={labData.labEmail} 
-onChange={handleChange} 
-className="w-full premium-input" 
-placeholder="Enter Email" 
+onMouseEnter={() => setHoverField("labEmail")}
+onMouseLeave={() => setHoverField(null)}
+className="w-full premium-input"
+placeholder="Enter Email"
+style={{ backgroundColor: "#f9fafb", cursor: "not-allowed" }}
 />
+
+{hoverField === "labEmail" && (
+<div style={{color:"#dc2626",fontSize:"12px",marginTop:"4px",fontWeight:"600"}}>
+Email cannot be changed. It is already registered.
+</div>
+)}
+
 </div>
 
 {/* ROW 2 */}
@@ -1397,26 +1435,10 @@ className="w-full premium-input"
 
         {/* BANK DETAILS */}
         <div className="bg-white rounded-xl shadow-lg p-6 mb-6 border border-gray-200" style={{ marginLeft: 8 }}>
-     <div
-  className="section-header"
-  style={{
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between"
-  }}
->
-  <h2
-    className="section-title"
-    style={{ margin: 0, textAlign: "left", flex: 1 }}
-  >
+     <div className="section-header">
+  <h2 className="section-title">
     Bank Details
   </h2>
-
-  <Download
-    size={18}
-    style={{ cursor: "pointer" }}
-    onClick={downloadBankPDF}
-  />
 </div>
           <div className="grid grid-cols-2 gap-4 mb-6">
             {[
@@ -1584,19 +1606,7 @@ className="w-full premium-input"
 {loading ? "Updating Info..." : saved ? "Saved ✓" : "Update Info"}
 </button>
 
-<button 
- onClick={downloadProfilePDF}
-  style={{
-    padding: "12px 32px",
-    borderRadius: 12,
-    border: "none",
-    fontWeight: 800,
-    background: "#f5c100",
-    color: "#000"
-  }}
->
-Download PDF
-</button>
+
         </div>
       </div>
     </>

@@ -20,31 +20,104 @@ const Field = ({ label, icon: Icon, value, onChange, type = "text", placeholder 
 );
 
 // ── Dropdown Field ───────────────────────────────────────────────────────────
-const SelectField = ({ label, icon: Icon, value, onChange, options = [], loading = false, placeholder = "Select...", disabled=false })=> (
-  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-  <label style={{ fontSize: 10, fontWeight: 900, textTransform: "uppercase", letterSpacing: ".15em", color: "#1f2937" }}>{label}</label>
-    <div style={{ position: "relative" }}>
-      <Icon size={14} color="#d1d5db" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", zIndex: 1 }} />
-      <ChevronDown size={13} color="#d1d5db" style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
-     <select
-  value={value}
-  onChange={onChange}
-  disabled={loading || disabled}
-        style={{ width: "100%", padding: "10px 34px 10px 34px", borderRadius: 10, border: "1.5px solid #f0ede6", fontSize: 13, fontWeight: 600, color: value ? "#111" : "#9ca3af", background: "#fff", outline: "none", fontFamily: "inherit", boxSizing: "border-box", appearance: "none", cursor: loading ? "not-allowed" : "pointer", transition: "border-color 0.15s" }}
-        onFocus={(e) => (e.target.style.borderColor = "#f5c100")}
-        onBlur={(e)  => (e.target.style.borderColor = "#f0ede6")}
-      >
-        <option value="" disabled>{loading ? "Loading..." : placeholder}</option>
-      {options.map((opt, i) => (
-  <option key={i} value={opt.value} style={{ color: "#111" }}>
-    {opt.label}
-  </option>
-))}
-      </select>
-    </div>
-  </div>
-);
+const SelectField = ({
+  label,
+  icon: Icon,
+  value,
+  onChange,
+  options = [],
+  loading = false,
+  placeholder = "Select...",
+  disabled = false,
+  disabledMessage = ""
+}) => {
 
+  const [hover,setHover] = useState(false);
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+
+      <label style={{
+        fontSize:10,
+        fontWeight:900,
+        textTransform:"uppercase",
+        letterSpacing:".15em",
+        color:"#1f2937"
+      }}>
+        {label}
+      </label>
+
+      <div
+        style={{ position:"relative" }}
+        onMouseEnter={()=>disabled && setHover(true)}
+        onMouseLeave={()=>setHover(false)}
+      >
+
+        <Icon size={14} color="#d1d5db"
+          style={{
+            position:"absolute",
+            left:12,
+            top:"50%",
+            transform:"translateY(-50%)",
+            pointerEvents:"none",
+            zIndex:1
+          }}
+        />
+
+        <ChevronDown size={13} color="#d1d5db"
+          style={{
+            position:"absolute",
+            right:12,
+            top:"50%",
+            transform:"translateY(-50%)",
+            pointerEvents:"none"
+          }}
+        />
+
+        <select
+          value={value}
+          onChange={onChange}
+          disabled={loading || disabled}
+          style={{
+            width:"100%",
+            padding:"10px 34px",
+            borderRadius:10,
+            border:"1.5px solid #f0ede6",
+            fontSize:13,
+            fontWeight:600,
+            background:"#fff",
+            appearance:"none",
+            cursor: loading ? "not-allowed":"pointer"
+          }}
+        >
+
+          <option value="" disabled>
+            {loading ? "Loading..." : placeholder}
+          </option>
+
+          {options.map((opt,i)=>(
+            <option key={i} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+
+        </select>
+
+        {hover && disabled && (
+          <div style={{
+            marginTop:4,
+            fontSize:11,
+            color:"#dc2626",
+            fontWeight:700
+          }}>
+            {disabledMessage}
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+};
 // ── Add / Edit Modal ─────────────────────────────────────────────────────────
 // materialOptions: [{ label, value, test, unit, price }]  — value === title
 const AddTestModal = ({ onClose, onSave, editData, materialOptions, materialsLoading, materialsError }) => {
@@ -133,17 +206,16 @@ useEffect(() => {
     setSubmitting(true);
     setApiError(null);
     try {
-     await addTest({
-   title: selectedMaterial,
-  test: selectedTest,
+   await addTest({
+  title: form.material,
+  test: form.test,
   unit: form.unit,
-  price: form.amount
-    ? Number(form.amount)
-    : govtPrice,
-  expiredDate: form.expiredDate,
+  price: form.amount,
+  expiredDate: form.expiredDate
 });
-      onSave(form);
-      onClose();
+
+onSave(form);   // ⭐ हे important
+onClose();      // modal close
     } catch (err) {
       setApiError(err.message || "Failed to save. Please try again.");
     } finally {
@@ -221,6 +293,7 @@ useEffect(() => {
   label="Add Testing Material"
   icon={FlaskConical}
   disabled={editData}
+  disabledMessage="it not editable only price will be editable"
     value={selectedMaterial}
     onChange={(e) => {
       const value = e.target.value;
@@ -256,6 +329,7 @@ useEffect(() => {
   label="Add Test"
   icon={FlaskConical}
   disabled={editData}
+  disabledMessage="it not editable only price will be editable"
   value={selectedTest}
   onChange={(e) => {
     setSelectedTest(e.target.value);
@@ -277,6 +351,7 @@ useEffect(() => {
   label="Test Unit"
   icon={Ruler}
   disabled={editData}
+  disabledMessage="it not editable only price will be editable"
   value={form.unit}
   onChange={(e) =>
     setForm(f => ({ ...f, unit: e.target.value }))
@@ -344,7 +419,7 @@ useEffect(() => {
           >
             {submitting
               ? <><Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} /> Saving...</>
-              : <><Plus size={14} /> {editData ? "Update Test" : "Save Test"}</>
+              : <>{editData ? "Update Test" : "Save Test"}</>
             }
           </button>
         </div>

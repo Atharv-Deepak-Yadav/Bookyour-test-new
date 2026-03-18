@@ -1,93 +1,261 @@
-import { FileText, CheckCircle, Clock, ArrowRight } from "lucide-react";
+"use client";
 
-const quickLinks = [
-  { label: "View Reports",     sub: "Check all lab submissions",      icon: FileText,    color: "#b45309", bg: "#fffbeb", border: "#fde68a" },
-  { label: "Pending Approvals",sub: "Reports waiting for review",     icon: Clock,       color: "#9a3412", bg: "#fff7ed", border: "#fed7aa" },
-  { label: "Approved Reports", sub: "All cleared test reports",       icon: CheckCircle, color: "#166534", bg: "#f0fdf4", border: "#bbf7d0" },
-];
+import { BarChart3, Calendar } from "lucide-react";
+import { useEffect, useState } from "react";
+import { fetchDashboardData } from "../../../services/api";
 
 const HomePage = () => {
+  const [dashboardData, setDashboardData] = useState({
+    monthlyReports: 0,
+    yearlyPayment: 0
+  });
+  const [reports, setReports] = useState([]);
+const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+   useEffect(() => {
+
+    const loadDashboard = async () => {
+
+      try {
+
+       const data = await fetchDashboardData();
+
+console.log("Dashboard API:", data);
+
+const items = data.totalTest?.items || [];
+
+const currentYear = new Date().getFullYear();
+
+const monthlyReports = items.filter((item) => {
+
+  const rawDate =
+    item._createdDate ||
+    item.createdDate ||
+    item._updatedDate ||
+    item.date ||
+    item._createdDate?.$date;
+
+  if (!rawDate) return false;
+
+  const reportDate = new Date(rawDate);
+
+  if (isNaN(reportDate)) return false;
+
+  console.log("REPORT DATE:", reportDate);
+
+ return (
+  reportDate.getMonth() === selectedMonth &&
+  reportDate.getFullYear() === currentYear
+);
+
+});
+const yearlyItems = items.filter((item) => {
+
+  const rawDate =
+    item._createdDate?.$date ||
+    item._createdDate ||
+    item.createdDate ||
+    item.date ||
+    item.createdAt;
+
+  if (!rawDate) return false;
+
+  const reportDate = new Date(rawDate);
+
+  if (isNaN(reportDate.getTime())) return false;
+
+  return reportDate.getFullYear() === currentYear;
+
+});
+
+const yearlyAmount = yearlyItems.reduce(
+  (sum, item) =>
+  sum + (
+    item.totalAmount ||
+    item.workOrderAmount ||
+    item.amount ||
+    0
+  ),
+  0
+);
+
+setReports(monthlyReports);
+
+setDashboardData({
+  monthlyReports: monthlyReports.length,
+  yearlyPayment: yearlyAmount
+});
+      } catch (err) {
+        console.error("Dashboard error:", err);
+      }
+
+    };
+
+    loadDashboard();
+
+  }, [selectedMonth]);
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
 
       {/* Welcome banner */}
-      <div
-        style={{
-          borderRadius: 20,
-          padding: "32px 36px",
-          background: "linear-gradient(135deg, #f5c100 0%, #e6a800 100%)",
-          boxShadow: "0 8px 32px rgba(245,193,0,0.25)",
-          position: "relative",
-          overflow: "hidden",
-        }}
-      >
+    <div
+  style={{
+    borderRadius: 16,
+    padding: "20px 24px",
+    background: "#fff",
+    border: "1px solid #f0ede6",
+    boxShadow: "0 2px 10px rgba(0,0,0,0.04)"
+  }}
+>
         {/* Decorative orb */}
-        <div style={{ position: "absolute", right: -40, top: -40, width: 220, height: 220, borderRadius: "50%", background: "rgba(255,255,255,0.12)", pointerEvents: "none" }} />
-        <div style={{ position: "absolute", right: 60, bottom: -60, width: 160, height: 160, borderRadius: "50%", background: "rgba(255,255,255,0.08)", pointerEvents: "none" }} />
+    
 
         <p style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".2em", color: "rgba(0,0,0,0.45)", marginBottom: 8 }}>
           Welcome back 👋
         </p>
-        <h2 style={{ fontSize: 26, fontWeight: 900, color: "#1a0f00", letterSpacing: "-.4px", margin: "0 0 8px" }}>
+        <h2 style={{ fontSize: 18, fontWeight: 800, color: "#1a0f00", letterSpacing: "-.4px", margin: "0 0 8px" }}>
           bookURtest Portal
         </h2>
-        <p style={{ fontSize: 13, color: "rgba(0,0,0,0.55)", fontWeight: 500, margin: 0, maxWidth: 420 }}>
+        <p
+  style={{
+    fontSize: 14,
+    color: "#4b5563",
+    fontWeight: 500,
+    margin: 0,
+    maxWidth: 520,
+    lineHeight: 1.6
+  }}
+>
           Manage civil construction material testing, submit reports, and track approvals — all in one place.
         </p>
       </div>
 
-      {/* Quick links */}
-      <div>
-        <p style={{ fontSize: 10, fontWeight: 900, textTransform: "uppercase", letterSpacing: ".18em", color: "#9ca3af", marginBottom: 12 }}>
-          Quick Access
-        </p>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
-          {quickLinks.map((item) => {
-            const Icon = item.icon;
-            return (
-              <div
-                key={item.label}
-                style={{
-                  borderRadius: 16,
-                  padding: "18px 20px",
-                  background: item.bg,
-                  border: `1.5px solid ${item.border}`,
-                  cursor: "pointer",
-                  transition: "transform .15s, box-shadow .15s",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: 12,
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 24px rgba(0,0,0,0.08)"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = "none"; }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <div style={{ width: 40, height: 40, borderRadius: 12, background: "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <Icon size={18} color={item.color} strokeWidth={2.2} />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: "#111", marginBottom: 2 }}>{item.label}</div>
-                    <div style={{ fontSize: 11, color: "#9ca3af", fontWeight: 500 }}>{item.sub}</div>
-                  </div>
-                </div>
-                <ArrowRight size={16} color={item.color} />
-              </div>
-            );
-          })}
-        </div>
+      
+      {/* Analytics Section */}
+<div>
+  <p
+    style={{
+      fontSize: 10,
+      fontWeight: 900,
+      textTransform: "uppercase",
+      letterSpacing: ".18em",
+      color: "#374151",
+      marginBottom: 12
+    }}
+  >
+    Analytics
+  </p>
+
+  <div
+    style={{
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 14
+    }}
+  >
+
+    {/* Monthly Analysis */}
+    <div
+      style={{
+        borderRadius: 16,
+        padding: "20px 22px",
+        background: "#fff",
+        border: "1px solid #f0ede6",
+        boxShadow: "0 2px 10px rgba(0,0,0,0.04)"
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", justifyContent:"space-between", marginBottom: 10 }}>
+  <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+    <BarChart3 size={18} color="#b45309" />
+    <span style={{ fontWeight: 800, fontSize: 13 }}>Monthly Analysis</span>
+  </div>
+
+  <select
+    value={selectedMonth}
+    onChange={(e)=>setSelectedMonth(Number(e.target.value))}
+    style={{
+      padding:"4px 8px",
+      fontSize:12,
+      borderRadius:6,
+      border:"1px solid #e5e7eb"
+    }}
+  >
+    {["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
+      .map((m,i)=>(
+        <option key={i} value={i}>{m}</option>
+      ))}
+  </select>
+</div>
+
+      <p style={{ fontSize: 12, color: "#6b7280", marginBottom: 10 }}>
+        Test reports submitted this month
+      </p>
+<h3 style={{ fontSize: 26, fontWeight: 900, color: "#111" }}>
+  {dashboardData.monthlyReports}
+</h3>
+
+{reports.length > 0 && (
+  <div style={{ marginTop: 16 }}>
+    {reports.map((item, i) => (
+      <div
+        key={i}
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          padding: "8px 0",
+          borderBottom: "1px solid #f3f4f6"
+        }}
+      >
+        <span style={{ fontSize: 12, fontWeight: 600 }}>
+          {item.workName}
+        </span>
+
+        <span style={{ fontSize: 12, fontWeight: 700, color: "#b45309" }}>
+         ₹{item.totalAmount || item.workOrderAmount || item.amount}
+        </span>
       </div>
+    ))}
+  </div>
+)}
+
+</div> {/* ❗ Monthly Analysis card close */}
+
+    {/* Yearly Payment */}
+    <div
+      style={{
+        borderRadius: 16,
+        padding: "20px 22px",
+        background: "#fff",
+        border: "1px solid #f0ede6",
+        boxShadow: "0 2px 10px rgba(0,0,0,0.04)"
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+        <Calendar size={18} color="#166534" />
+        <span style={{ fontWeight: 800, fontSize: 13 }}>Yearly Payment</span>
+      </div>
+
+      <p style={{ fontSize: 12, color: "#6b7280", marginBottom: 10 }}>
+        Total payments this year
+      </p>
+
+    <h3 style={{ fontSize: 26, fontWeight: 900, color: "#111" }}>
+  ₹{dashboardData.yearlyPayment.toLocaleString()}
+</h3>
+    </div>
+
+  </div>
+</div>
 
       {/* Info cards */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
         <div style={{ borderRadius: 16, padding: "20px 22px", background: "#fff", border: "1px solid #f0ede6", boxShadow: "0 2px 10px rgba(0,0,0,0.04)" }}>
-          <p style={{ fontSize: 10, fontWeight: 900, textTransform: "uppercase", letterSpacing: ".15em", color: "#9ca3af", marginBottom: 10 }}>About bookURtest</p>
+          <p style={{ fontSize: 10, fontWeight: 900, textTransform: "uppercase", letterSpacing: ".15em", color: "#374151", marginBottom: 10 }}>About bookURtest</p>
           <p style={{ fontSize: 13, color: "#4b5563", lineHeight: 1.7, margin: 0 }}>
             A dedicated platform for civil contractors to submit material test samples, track lab reports, and get approvals from senior engineers — streamlining the entire QC workflow.
           </p>
         </div>
         <div style={{ borderRadius: 16, padding: "20px 22px", background: "#fff", border: "1px solid #f0ede6", boxShadow: "0 2px 10px rgba(0,0,0,0.04)" }}>
-          <p style={{ fontSize: 10, fontWeight: 900, textTransform: "uppercase", letterSpacing: ".15em", color: "#9ca3af", marginBottom: 10 }}>How it works</p>
+          <p style={{ fontSize: 10, fontWeight: 900, textTransform: "uppercase", letterSpacing: ".15em", color: "#374151", marginBottom: 10 }}>How it works</p>
           {["Submit test samples via Add Test", "Lab processes and uploads results", "Senior engineer reviews and approves", "Download final certified report"].map((step, i) => (
             <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: i < 3 ? 8 : 0 }}>
               <span style={{ width: 20, height: 20, borderRadius: "50%", background: "#fffbeb", border: "1.5px solid #fde68a", fontSize: 9, fontWeight: 900, color: "#b45309", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>{i + 1}</span>
