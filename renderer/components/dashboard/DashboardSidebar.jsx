@@ -18,6 +18,7 @@ const DashboardSidebar = ({
   setActivePage,
   user,
   onLogout,
+   setShowPopup,   // ⭐ ADD THIS
 }) => {
   // ⭐ GET USER TYPE FROM LOCALSTORAGE
 const userData = JSON.parse(localStorage.getItem("user_data") || "{}");
@@ -63,7 +64,7 @@ const handleNavigation = (pageKey) => {
 
   // Pending user only account page open
   if (status !== "approved" && pageKey !== "account") {
-    alert("Your account is pending approval. Please wait for admin approval.");
+    setShowPopup(true);
     return;
   }
 

@@ -161,6 +161,7 @@ const setActivePage = (page) => {
         setActivePage={setActivePage}
         user={user}
         onLogout={onLogout}
+         setShowPopup={setShowPopup} 
       />
 
       {/* MAIN CONTENT */}
